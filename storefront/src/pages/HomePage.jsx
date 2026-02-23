@@ -94,7 +94,7 @@ export default function HomePage() {
                           </div>
                         )}
                       </div>
-                    )))}
+                    ))}
                   </div>
                   <Link
                     to="/shop"
