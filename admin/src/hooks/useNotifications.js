@@ -3,42 +3,18 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { useNotificationStore } from '../store/notificationStore';
 
-let audio = null;
-let audioUnlocked = false;
 const SOUND_URL = (import.meta.env.BASE_URL || '/') + 'sounds/notification.mp3';
-
-// Unlock audio on first user interaction (browser autoplay policy)
-function unlockAudio() {
-  if (audioUnlocked) return;
-  try {
-    audio = new Audio(SOUND_URL);
-    audio.volume = 0;
-    audio.play().then(() => {
-      audio.pause();
-      audio.volume = 1;
-      audio.currentTime = 0;
-      audioUnlocked = true;
-    }).catch(() => {});
-  } catch {
-    // ignore
-  }
-}
-
-if (typeof document !== 'undefined') {
-  ['click', 'keydown', 'touchstart'].forEach((evt) => {
-    document.addEventListener(evt, unlockAudio, { once: true });
-  });
-}
 
 function playSound() {
   try {
-    if (!audio) {
-      audio = new Audio(SOUND_URL);
-    }
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  } catch {
-    // Sound not available
+    // Create a fresh Audio each time — avoids stale/locked instances
+    const sound = new Audio(SOUND_URL);
+    sound.volume = 1;
+    sound.play().catch((err) => {
+      console.warn('[Notification] Audio play blocked:', err.message);
+    });
+  } catch (err) {
+    console.warn('[Notification] Audio error:', err.message);
   }
 }
 
