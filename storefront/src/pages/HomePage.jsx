@@ -53,14 +53,20 @@ export default function HomePage() {
         <div className="max-w-container mx-auto px-4 lg:px-6 py-4 lg:py-6">
           <div className="flex gap-5">
             {/* Category Sidebar - desktop only */}
-            {categories.length > 0 && (
+            {(loading || categories.length > 0) && (
               <div className="hidden lg:block w-64 flex-shrink-0">
                 <nav className="bg-white rounded-xl border border-border shadow-sm h-full flex flex-col">
                   <div className="px-5 py-3.5 border-b border-border">
                     <h3 className="text-sm font-semibold text-primary-900 tracking-wide">Browse Categories</h3>
                   </div>
                   <div className="flex-1 py-1">
-                    {categories.slice(0, 10).map((cat) => (
+                    {loading ? (
+                      Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="px-5 py-2.5">
+                          <div className="h-4 bg-gray-100 rounded animate-pulse" style={{ width: `${60 + Math.random() * 30}%` }} />
+                        </div>
+                      ))
+                    ) : categories.slice(0, 10).map((cat) => (
                       <div key={cat.id} className="relative group/cat">
                         <Link
                           to={`/shop?categoryId=${cat.id}`}
@@ -88,7 +94,7 @@ export default function HomePage() {
                           </div>
                         )}
                       </div>
-                    ))}
+                    )))}
                   </div>
                   <Link
                     to="/shop"
@@ -103,7 +109,10 @@ export default function HomePage() {
 
             {/* Hero Slides */}
             <div className="flex-1 relative overflow-hidden rounded-xl min-h-[280px] sm:min-h-[360px] lg:min-h-[420px]">
-              {slides.length > 0 ? (
+              {loading ? (
+                /* Skeleton while loading */
+                <div className="absolute inset-0 bg-primary-100 animate-pulse rounded-xl" />
+              ) : slides.length > 0 ? (
                 <>
                   {slides.map((slide, idx) => (
                     <div
