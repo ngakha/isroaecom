@@ -30,6 +30,7 @@ export default function ShopPage() {
 
   const currentSearch = searchParams.get('search') || '';
   const currentCategory = searchParams.get('categoryId') || '';
+  const currentOnSale = searchParams.get('onSale') || '';
   const currentSort = searchParams.get('sort') || 'created_at:desc';
   const currentPage = parseInt(searchParams.get('page') || '1');
 
@@ -42,7 +43,7 @@ export default function ShopPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, [currentSearch, currentCategory, currentSort, currentPage]);
+  }, [currentSearch, currentCategory, currentOnSale, currentSort, currentPage]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -57,6 +58,7 @@ export default function ShopPage() {
       };
       if (currentSearch) params.search = currentSearch;
       if (currentCategory) params.categoryId = currentCategory;
+      if (currentOnSale) params.onSale = currentOnSale;
 
       const { data } = await api.get('/products', { params });
       setProducts(data.data || []);
@@ -83,7 +85,7 @@ export default function ShopPage() {
     setSearchParams({});
   };
 
-  const hasActiveFilters = currentSearch || currentCategory;
+  const hasActiveFilters = currentSearch || currentCategory || currentOnSale;
   const selectedCategory = categories.find((c) => c.id === currentCategory);
 
   return (
@@ -155,7 +157,7 @@ export default function ShopPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold text-primary-900">
-                {selectedCategory ? selectedCategory.name : 'All Products'}
+                {currentOnSale ? 'Sale' : selectedCategory ? selectedCategory.name : 'All Products'}
               </h1>
               {!loading && (
                 <span className="text-sm text-muted">({pagination.total})</span>
@@ -212,6 +214,12 @@ export default function ShopPage() {
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-md">
                   Search: {currentSearch}
                   <button onClick={() => updateParam('search', '')}><X size={12} /></button>
+                </span>
+              )}
+              {currentOnSale && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 text-xs rounded-md">
+                  On Sale
+                  <button onClick={() => updateParam('onSale', '')}><X size={12} /></button>
                 </span>
               )}
               {selectedCategory && (

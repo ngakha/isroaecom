@@ -51,6 +51,7 @@ const listQuery = Joi.object({
   search: Joi.string().max(200).optional(),
   categoryId: Joi.string().uuid().optional(),
   status: Joi.string().valid('draft', 'published', 'archived').optional(),
+  onSale: Joi.string().valid('true', 'false').optional(),
   sortBy: Joi.string().valid('created_at', 'name', 'price', 'stock_quantity').optional(),
   sortOrder: Joi.string().valid('asc', 'desc').optional(),
 });

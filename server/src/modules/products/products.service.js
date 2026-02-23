@@ -14,7 +14,7 @@ class ProductsService {
   /**
    * List products with filters, search, pagination
    */
-  async list({ page = 1, limit = 25, search, categoryId, status, sortBy = 'created_at', sortOrder = 'desc' }) {
+  async list({ page = 1, limit = 25, search, categoryId, status, onSale, sortBy = 'created_at', sortOrder = 'desc' }) {
     const db = this.db();
     let query = db('products').where('products.is_deleted', false);
 
@@ -34,6 +34,10 @@ class ProductsService {
 
     if (status) {
       query = query.where('products.status', status);
+    }
+
+    if (onSale === 'true') {
+      query = query.whereNotNull('products.sale_price').where('products.sale_price', '>', 0);
     }
 
     // Count total

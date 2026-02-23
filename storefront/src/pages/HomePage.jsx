@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Truck, Shield, RotateCcw, ChevronRight } from 'lucide-react';
+import { ArrowRight, Truck, Shield, RotateCcw, ChevronRight, Flame } from 'lucide-react';
 import ProductCard from '../components/ecommerce/ProductCard';
 import { ProductCardSkeleton } from '../components/ui/Skeleton';
 import api from '../services/api';
@@ -8,6 +8,7 @@ import api from '../services/api';
 export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
+  const [saleProducts, setSaleProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [heroData, setHeroData] = useState({ slides: [], heroMode: 'carousel' });
   const [activeSlide, setActiveSlide] = useState(0);
@@ -16,14 +17,16 @@ export default function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [featuredRes, newRes, catRes, heroRes] = await Promise.all([
+        const [featuredRes, newRes, saleRes, catRes, heroRes] = await Promise.all([
           api.get('/products', { params: { status: 'published', limit: 4, sortBy: 'created_at', sortOrder: 'asc' } }),
           api.get('/products', { params: { status: 'published', limit: 4, sortBy: 'created_at', sortOrder: 'desc' } }),
+          api.get('/products', { params: { status: 'published', limit: 4, onSale: 'true' } }),
           api.get('/products/categories'),
           api.get('/heroes'),
         ]);
         setFeaturedProducts(featuredRes.data.data || []);
         setNewArrivals(newRes.data.data || []);
+        setSaleProducts(saleRes.data.data || []);
         setCategories(catRes.data.data || []);
         setHeroData(heroRes.data.data || { slides: [], heroMode: 'carousel' });
       } catch {
@@ -218,6 +221,52 @@ export default function HomePage() {
               ))}
         </div>
       </section>
+
+      {/* Sale / Hot Deals */}
+      {(loading || saleProducts.length > 0) && (
+        <section className="relative overflow-hidden bg-gradient-to-br from-red-600 via-rose-600 to-orange-500">
+          {/* Decorative background elements */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white" />
+            <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-white" />
+          </div>
+
+          <div className="relative max-w-container mx-auto px-4 lg:px-6 py-14">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full">
+                  <Flame size={22} className="text-yellow-200" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white tracking-tight">Hot Deals</h2>
+                  <p className="text-sm text-white/70 mt-0.5">Limited time offers — don't miss out</p>
+                </div>
+              </div>
+              <Link
+                to="/shop?onSale=true"
+                className="hidden sm:inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-white/25 transition-colors border border-white/20"
+              >
+                View All Deals <ArrowRight size={14} />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
+                : saleProducts.map((product) => (
+                    <div key={product.id} className="bg-white rounded-xl p-2 shadow-lg shadow-black/10">
+                      <ProductCard product={product} />
+                    </div>
+                  ))}
+            </div>
+            <Link
+              to="/shop?onSale=true"
+              className="sm:hidden flex items-center justify-center gap-2 mt-6 bg-white/15 backdrop-blur-sm text-white px-5 py-3 rounded-lg text-sm font-semibold hover:bg-white/25 transition-colors border border-white/20"
+            >
+              View All Deals <ArrowRight size={14} />
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* New Arrivals */}
       <section className="bg-surface">
