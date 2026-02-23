@@ -3,21 +3,52 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { useNotificationStore } from '../store/notificationStore';
 
+// ─── Web Audio API for reliable sound from timers ────────
 const SOUND_URL = (import.meta.env.BASE_URL || '/') + 'sounds/notification.mp3';
+let audioCtx = null;
+let audioBuffer = null;
 
-function playSound() {
+// Unlock AudioContext on first user interaction, then preload sound
+function initAudio() {
+  if (audioCtx) return;
   try {
-    // Create a fresh Audio each time — avoids stale/locked instances
-    const sound = new Audio(SOUND_URL);
-    sound.volume = 1;
-    sound.play().catch((err) => {
-      console.warn('[Notification] Audio play blocked:', err.message);
-    });
-  } catch (err) {
-    console.warn('[Notification] Audio error:', err.message);
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Preload the notification sound
+    fetch(SOUND_URL)
+      .then((res) => res.arrayBuffer())
+      .then((buf) => audioCtx.decodeAudioData(buf))
+      .then((decoded) => {
+        audioBuffer = decoded;
+      })
+      .catch(() => {});
+  } catch {
+    // Web Audio API not supported
   }
 }
 
+if (typeof document !== 'undefined') {
+  ['click', 'keydown', 'touchstart'].forEach((evt) => {
+    document.addEventListener(evt, initAudio, { once: true });
+  });
+}
+
+function playSound() {
+  if (!audioCtx || !audioBuffer) return;
+  try {
+    // Resume context if suspended (browser policy)
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    const source = audioCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(audioCtx.destination);
+    source.start(0);
+  } catch (err) {
+    console.warn('[Notification] Sound error:', err.message);
+  }
+}
+
+// ─── Toast notifications ─────────────────────────────────
 function showNotification(data) {
   if (data.type === 'new_order') {
     toast(
@@ -41,6 +72,7 @@ function showNotification(data) {
   }
 }
 
+// ─── Polling hook ────────────────────────────────────────
 const POLL_INTERVAL = 10000; // 10 seconds
 
 export default function useNotifications() {
