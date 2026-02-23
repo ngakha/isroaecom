@@ -11,8 +11,10 @@ module.exports = {
     ssl: process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : false,
   },
   pool: {
-    min: 2,
-    max: 10,
+    min: 0,
+    max: process.env.VERCEL ? 2 : 10,
+    acquireTimeoutMillis: 30000,
+    idleTimeoutMillis: 10000,
   },
   migrations: {
     directory: require('path').resolve(__dirname, '../migrations'),

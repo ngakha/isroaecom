@@ -41,6 +41,26 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ─── DB Health Check (diagnostic) ──────────────────
+app.get('/api/health/db', async (req, res) => {
+  try {
+    const { getDatabase } = require('./database');
+    const db = getDatabase();
+    await db.raw('SELECT 1');
+    res.json({ status: 'ok', db: 'connected' });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      db: 'failed',
+      message: error.message,
+      code: error.code,
+      host: process.env.DB_HOST || 'not set',
+      port: process.env.DB_PORT || 'not set',
+      dbName: process.env.DB_NAME || 'not set',
+    });
+  }
+});
+
 // ─── Load Plugins ──────────────────────────────────
 const pluginManager = new PluginManager();
 pluginManager.loadAll();
