@@ -21,13 +21,26 @@ const IMAGE_SIZES = {
   micro: { width: 80,   height: 80,   fit: 'cover',  quality: 70 },
 };
 
+// Use Vercel Blob when token is available, otherwise local filesystem
+const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
+let blob;
+if (useBlob) {
+  blob = require('@vercel/blob');
+}
+
 class MediaService {
   constructor() {
     this.db = () => getDatabase();
-    this.uploadDir = path.resolve(config.upload.dir);
 
-    if (!fs.existsSync(this.uploadDir)) {
-      fs.mkdirSync(this.uploadDir, { recursive: true });
+    if (!useBlob) {
+      this.uploadDir = path.resolve(config.upload.dir);
+      try {
+        if (!fs.existsSync(this.uploadDir)) {
+          fs.mkdirSync(this.uploadDir, { recursive: true });
+        }
+      } catch (err) {
+        console.warn('[Media] Could not create upload dir:', err.message);
+      }
     }
   }
 
@@ -59,24 +72,16 @@ class MediaService {
 
   /**
    * Upload and process a file with multiple optimized sizes (WebP)
+   * Uses Vercel Blob in production, local filesystem in development
    */
   async upload(file, folder = '') {
     const db = this.db();
     const id = uuid();
-
-    const targetDir = folder
-      ? path.join(this.uploadDir, folder)
-      : this.uploadDir;
-
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
-    }
-
     const prefixPath = folder ? `${folder}/` : '';
 
     if (file.mimetype.startsWith('image/')) {
       // ─── Image Processing ─────────────────────────
-      const source = sharp(file.buffer || file.path).rotate(); // auto-rotate from EXIF
+      const source = sharp(file.buffer || file.path).rotate();
       const metadata = await source.metadata();
 
       const generated = {};
@@ -84,10 +89,8 @@ class MediaService {
       for (const [sizeName, preset] of Object.entries(IMAGE_SIZES)) {
         const suffix = sizeName === 'full' ? '' : `_${sizeName}`;
         const filename = `${id}${suffix}.webp`;
-        const filePath = path.join(targetDir, filename);
-        const relativePath = `${prefixPath}${filename}`;
 
-        await source
+        const buffer = await source
           .clone()
           .resize({
             width: preset.width,
@@ -96,9 +99,24 @@ class MediaService {
             withoutEnlargement: true,
           })
           .webp({ quality: preset.quality })
-          .toFile(filePath);
+          .toBuffer();
 
-        generated[sizeName] = `/uploads/${relativePath}`;
+        if (useBlob) {
+          const { url } = await blob.put(`${prefixPath}${filename}`, buffer, {
+            access: 'public',
+            contentType: 'image/webp',
+          });
+          generated[sizeName] = url;
+        } else {
+          const targetDir = folder
+            ? path.join(this.uploadDir, folder)
+            : this.uploadDir;
+          if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+          }
+          fs.writeFileSync(path.join(targetDir, filename), buffer);
+          generated[sizeName] = `/uploads/${prefixPath}${filename}`;
+        }
       }
 
       const fullFilename = `${id}.webp`;
@@ -110,7 +128,7 @@ class MediaService {
           original_name: file.originalname,
           filename: fullFilename,
           path: fullRelativePath,
-          thumbnail_path: `${prefixPath}${id}_thumb.webp`,
+          thumbnail_path: useBlob ? generated.thumb : `${prefixPath}${id}_thumb.webp`,
           mime_type: 'image/webp',
           size: file.size,
           width: metadata.width,
@@ -130,13 +148,29 @@ class MediaService {
       // ─── Non-image file ───────────────────────────
       const ext = path.extname(file.originalname).toLowerCase();
       const filename = `${id}${ext}`;
-      const filePath = path.join(targetDir, filename);
-      const relativePath = `${prefixPath}${filename}`;
+      let fileUrl;
 
-      if (file.buffer) {
-        fs.writeFileSync(filePath, file.buffer);
-      } else if (file.path) {
-        fs.copyFileSync(file.path, filePath);
+      if (useBlob) {
+        const buffer = file.buffer || fs.readFileSync(file.path);
+        const { url } = await blob.put(`${prefixPath}${filename}`, buffer, {
+          access: 'public',
+          contentType: file.mimetype,
+        });
+        fileUrl = url;
+      } else {
+        const targetDir = folder
+          ? path.join(this.uploadDir, folder)
+          : this.uploadDir;
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir, { recursive: true });
+        }
+        const filePath = path.join(targetDir, filename);
+        if (file.buffer) {
+          fs.writeFileSync(filePath, file.buffer);
+        } else if (file.path) {
+          fs.copyFileSync(file.path, filePath);
+        }
+        fileUrl = `/uploads/${prefixPath}${filename}`;
       }
 
       const [media] = await db('media')
@@ -144,14 +178,14 @@ class MediaService {
           id,
           original_name: file.originalname,
           filename,
-          path: relativePath,
+          path: useBlob ? fileUrl : `${prefixPath}${filename}`,
           thumbnail_path: null,
           mime_type: file.mimetype,
           size: file.size,
           width: null,
           height: null,
           folder: folder || null,
-          url: `/uploads/${relativePath}`,
+          url: fileUrl,
           thumbnail_url: null,
           created_at: new Date(),
         })
@@ -185,25 +219,38 @@ class MediaService {
     const media = await db('media').where({ id }).first();
     if (!media) throw new AppError('Media not found', 404);
 
-    const dir = media.folder
-      ? path.join(this.uploadDir, media.folder)
-      : this.uploadDir;
+    if (useBlob) {
+      // Delete all blob variants for this media ID
+      try {
+        const prefix = media.folder ? `${media.folder}/${id}` : id;
+        const { blobs: items } = await blob.list({ prefix });
+        const urlsToDelete = items.map((b) => b.url);
+        if (urlsToDelete.length > 0) {
+          await blob.del(urlsToDelete);
+        }
+      } catch (err) {
+        console.warn('[Media] Failed to delete blobs:', err.message);
+      }
+    } else {
+      // Delete from local filesystem
+      const dir = media.folder
+        ? path.join(this.uploadDir, media.folder)
+        : this.uploadDir;
 
-    // Delete all generated WebP size variants
-    for (const suffix of ['', '_md', '_thumb', '_micro']) {
-      const filePath = path.join(dir, `${id}${suffix}.webp`);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
+      for (const suffix of ['', '_md', '_thumb', '_micro']) {
+        const filePath = path.join(dir, `${id}${suffix}.webp`);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
 
-    // Also clean up legacy JPEG files (uploaded before WebP migration)
-    const legacyPath = path.join(this.uploadDir, media.path);
-    if (fs.existsSync(legacyPath) && !legacyPath.endsWith('.webp')) {
-      fs.unlinkSync(legacyPath);
-    }
-    if (media.thumbnail_path) {
-      const legacyThumb = path.join(this.uploadDir, media.thumbnail_path);
-      if (fs.existsSync(legacyThumb) && !legacyThumb.endsWith('.webp')) {
-        fs.unlinkSync(legacyThumb);
+      const legacyPath = path.join(this.uploadDir, media.path);
+      if (fs.existsSync(legacyPath) && !legacyPath.endsWith('.webp')) {
+        fs.unlinkSync(legacyPath);
+      }
+      if (media.thumbnail_path) {
+        const legacyThumb = path.join(this.uploadDir, media.thumbnail_path);
+        if (fs.existsSync(legacyThumb) && !legacyThumb.endsWith('.webp')) {
+          fs.unlinkSync(legacyThumb);
+        }
       }
     }
 
