@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "npm install",
+  "installCommand": "npm install --include=dev",
   "buildCommand": "npm run build --workspace=storefront && npm run build --workspace=admin && cp -r admin/dist storefront/dist/admin",
   "outputDirectory": "storefront/dist",
   "functions": {
