@@ -4,8 +4,8 @@
   "description": "PRShark Ecommerce Engine - Server",
   "main": "src/core/app.js",
   "scripts": {
-    "dev": "nodemon src/core/app.js",
-    "start": "node src/core/app.js",
+    "dev": "nodemon src/core/start.js",
+    "start": "node src/core/start.js",
     "migrate": "knex migrate:latest --knexfile config/database.js",
     "migrate:rollback": "knex migrate:rollback --knexfile config/database.js",
     "migrate:make": "knex migrate:make --knexfile config/database.js",

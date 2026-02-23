@@ -2,7 +2,6 @@ const express = require('express');
 const morgan = require('morgan');
 const path = require('path');
 const config = require('../../config/default');
-const { testConnection } = require('./database');
 const AutoRouter = require('./router');
 const { helmetMiddleware, corsMiddleware, rateLimitMiddleware } = require('./middleware/security');
 const { sanitize } = require('./middleware/validate');
@@ -69,26 +68,5 @@ if (config.app.env === 'production') {
 // ─── 404 & Error Handling ──────────────────────────
 app.use(notFoundHandler);
 app.use(errorHandler);
-
-// ─── Start Server ──────────────────────────────────
-async function start() {
-  try {
-    await testConnection();
-
-    app.listen(config.app.port, () => {
-      console.log('═══════════════════════════════════════════');
-      console.log(`  PRShark Ecommerce Engine`);
-      console.log(`  Environment: ${config.app.env}`);
-      console.log(`  Server:      ${config.app.url}`);
-      console.log(`  Admin:       ${config.app.adminUrl}`);
-      console.log('═══════════════════════════════════════════');
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error.message);
-    process.exit(1);
-  }
-}
-
-start();
 
 module.exports = app;
