@@ -168,10 +168,22 @@ class CustomersService {
 
   async getWishlist(customerId) {
     const db = this.db();
-    return db('wishlists')
+    const products = await db('wishlists')
       .join('products', 'wishlists.product_id', 'products.id')
       .where({ 'wishlists.customer_id': customerId, 'products.is_deleted': false })
       .select('products.*', 'wishlists.created_at as wishlisted_at');
+
+    if (!products.length) return products;
+
+    const productIds = products.map((p) => p.id);
+    const images = await db('product_images')
+      .whereIn('product_id', productIds)
+      .orderBy('sort_order');
+
+    return products.map((product) => ({
+      ...product,
+      images: images.filter((img) => img.product_id === product.id),
+    }));
   }
 
   async addToWishlist(customerId, productId) {

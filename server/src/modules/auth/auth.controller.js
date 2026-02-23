@@ -81,6 +81,35 @@ class AuthController {
   async me(req, res) {
     res.json({ data: req.user });
   }
+
+  // ─── Admin Users Management ───────────────────────
+
+  async listAdmins(req, res, next) {
+    try {
+      const admins = await authService.listAdmins();
+      res.json({ data: admins });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateAdmin(req, res, next) {
+    try {
+      const admin = await authService.updateAdmin(req.params.id, req.body);
+      res.json({ data: admin });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteAdmin(req, res, next) {
+    try {
+      await authService.deleteAdmin(req.params.id);
+      res.json({ message: 'Admin user deleted' });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new AuthController();

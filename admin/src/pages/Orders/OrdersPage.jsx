@@ -1,17 +1,45 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Eye } from 'lucide-react';
+import { Search, Eye, Archive, ArchiveRestore } from 'lucide-react';
 import { usePaginatedApi } from '../../hooks/useApi';
 import DataTable from '../../components/ui/DataTable';
 import StatusBadge from '../../components/ui/StatusBadge';
+import api from '../../services/api';
+import toast from 'react-hot-toast';
 
 export default function OrdersPage() {
   const [search, setSearch] = useState('');
-  const { data: orders, pagination, loading, setPage, updateFilters } = usePaginatedApi('/orders');
+  const [tab, setTab] = useState('active');
+  const { data: orders, pagination, loading, setPage, updateFilters, refetch } = usePaginatedApi('/orders');
 
   const handleSearch = (e) => {
     e.preventDefault();
     updateFilters({ search });
+  };
+
+  const handleTabChange = (newTab) => {
+    setTab(newTab);
+    updateFilters({ archived: newTab === 'archived' ? 'true' : 'false', status: undefined });
+  };
+
+  const handleArchive = async (id) => {
+    try {
+      await api.patch(`/orders/${id}/archive`);
+      toast.success('Order archived');
+      refetch();
+    } catch {
+      toast.error('Archive failed');
+    }
+  };
+
+  const handleUnarchive = async (id) => {
+    try {
+      await api.patch(`/orders/${id}/unarchive`);
+      toast.success('Order restored');
+      refetch();
+    } catch {
+      toast.error('Restore failed');
+    }
   };
 
   const columns = [
@@ -49,9 +77,28 @@ export default function OrdersPage() {
       key: 'actions',
       label: '',
       render: (row) => (
-        <Link to={`/orders/${row.id}`} className="p-1.5 text-gray-400 hover:text-primary-600 inline-block">
-          <Eye size={16} />
-        </Link>
+        <div className="flex items-center gap-1">
+          <Link to={`/orders/${row.id}`} className="p-1.5 text-gray-400 hover:text-primary-600 inline-block">
+            <Eye size={16} />
+          </Link>
+          {tab === 'active' ? (
+            <button
+              onClick={() => handleArchive(row.id)}
+              className="p-1.5 text-gray-400 hover:text-amber-600"
+              title="Archive"
+            >
+              <Archive size={16} />
+            </button>
+          ) : (
+            <button
+              onClick={() => handleUnarchive(row.id)}
+              className="p-1.5 text-gray-400 hover:text-green-600"
+              title="Restore"
+            >
+              <ArchiveRestore size={16} />
+            </button>
+          )}
+        </div>
       ),
     },
   ];
@@ -59,6 +106,30 @@ export default function OrdersPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Orders</h1>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-4 border-b border-gray-200">
+        <button
+          onClick={() => handleTabChange('active')}
+          className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
+            tab === 'active'
+              ? 'border-gray-900 text-gray-900'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Active Orders
+        </button>
+        <button
+          onClick={() => handleTabChange('archived')}
+          className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
+            tab === 'archived'
+              ? 'border-gray-900 text-gray-900'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Archived
+        </button>
+      </div>
 
       <div className="flex gap-3">
         <form onSubmit={handleSearch} className="flex gap-2 flex-1 max-w-md">
@@ -87,7 +158,7 @@ export default function OrdersPage() {
         pagination={pagination}
         onPageChange={setPage}
         loading={loading}
-        emptyMessage="No orders found"
+        emptyMessage={tab === 'archived' ? 'No archived orders' : 'No orders found'}
       />
     </div>
   );

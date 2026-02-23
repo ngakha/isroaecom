@@ -4,10 +4,13 @@ import { Plus, Search, Trash2, Edit } from 'lucide-react';
 import { usePaginatedApi } from '../../hooks/useApi';
 import DataTable from '../../components/ui/DataTable';
 import StatusBadge from '../../components/ui/StatusBadge';
+import { useAuthStore } from '../../store/authStore';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function ProductsPage() {
+  const { user } = useAuthStore();
+  const canDelete = user?.role === 'super_admin' || user?.role === 'shop_manager';
   const [search, setSearch] = useState('');
   const { data: products, pagination, loading, refetch, setPage, updateFilters } = usePaginatedApi('/products');
 
@@ -83,9 +86,11 @@ export default function ProductsPage() {
           <Link to={`/products/${row.id}/edit`} className="p-1.5 text-gray-400 hover:text-primary-600 rounded">
             <Edit size={16} />
           </Link>
-          <button onClick={() => handleDelete(row.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded">
-            <Trash2 size={16} />
-          </button>
+          {canDelete && (
+            <button onClick={() => handleDelete(row.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded">
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       ),
     },

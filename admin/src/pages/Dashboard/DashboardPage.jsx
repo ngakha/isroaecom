@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ShoppingCart, DollarSign, Package, Users } from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
 import api from '../../services/api';
 
 function StatCard({ title, value, icon: Icon, color }) {
@@ -19,19 +20,30 @@ function StatCard({ title, value, icon: Icon, color }) {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuthStore();
+  const role = user?.role;
+  const canViewStats = role === 'super_admin' || role === 'shop_manager';
+
   const [stats, setStats] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [productCount, setProductCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchDashboard() {
       try {
-        const [statsRes, ordersRes] = await Promise.all([
-          api.get('/orders/stats'),
-          api.get('/orders', { params: { limit: 5, sortBy: 'created_at', sortOrder: 'desc' } }),
-        ]);
-        setStats(statsRes.data.data);
-        setRecentOrders(ordersRes.data.data || []);
+        if (canViewStats) {
+          const [statsRes, ordersRes] = await Promise.all([
+            api.get('/orders/stats'),
+            api.get('/orders', { params: { limit: 5, sortBy: 'created_at', sortOrder: 'desc' } }),
+          ]);
+          setStats(statsRes.data.data);
+          setRecentOrders(ordersRes.data.data || []);
+        } else {
+          // content_editor: just fetch product count
+          const productsRes = await api.get('/products', { params: { limit: 1 } });
+          setProductCount(productsRes.data.pagination?.total || 0);
+        }
       } catch {
         // Stats might fail if no orders yet
       } finally {
@@ -39,14 +51,14 @@ export default function DashboardPage() {
       }
     }
     fetchDashboard();
-  }, []);
+  }, [canViewStats]);
 
   if (loading) {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
+          {[...Array(canViewStats ? 4 : 2)].map((_, i) => (
             <div key={i} className="card animate-pulse h-24" />
           ))}
         </div>
@@ -54,6 +66,53 @@ export default function DashboardPage() {
     );
   }
 
+  // Content Editor Dashboard
+  if (!canViewStats) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-gray-500">Welcome back, {user?.firstName}!</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link to="/products" className="card hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-blue-500">
+                <Package size={24} className="text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Products</p>
+                <p className="text-2xl font-bold">{productCount}</p>
+              </div>
+            </div>
+          </Link>
+          <Link to="/categories" className="card hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-green-500">
+                <Package size={24} className="text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Categories</p>
+                <p className="text-lg font-medium text-primary-600">Manage</p>
+              </div>
+            </div>
+          </Link>
+          <Link to="/media" className="card hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-purple-500">
+                <Package size={24} className="text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Media Library</p>
+                <p className="text-lg font-medium text-primary-600">Upload</p>
+              </div>
+            </div>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Super Admin / Shop Manager Dashboard
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>

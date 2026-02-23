@@ -44,7 +44,7 @@ function corsMiddleware() {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-session-id'],
     maxAge: 86400, // Preflight cache 24h
   });
 }

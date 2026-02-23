@@ -2,7 +2,7 @@ const Joi = require('joi');
 
 const addItem = Joi.object({
   productId: Joi.string().uuid().required(),
-  variantId: Joi.string().uuid().optional(),
+  variantId: Joi.string().uuid().allow(null).optional(),
   quantity: Joi.number().integer().min(1).max(999).default(1),
 });
 

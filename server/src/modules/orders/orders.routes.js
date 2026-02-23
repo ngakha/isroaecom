@@ -19,6 +19,18 @@ router.get('/stats',
   controller.getStats
 );
 
+// Customer - my orders (MUST be before /:id to avoid param conflict)
+router.get('/my-orders',
+  authenticate,
+  controller.myOrders
+);
+
+// Customer - my order detail
+router.get('/my-orders/:id',
+  authenticate,
+  controller.myOrderDetail
+);
+
 // Admin - get single order
 router.get('/:id',
   authenticate,
@@ -38,6 +50,19 @@ router.patch('/:id/status',
   authorize('shop_manager'),
   validate(schemas.updateStatus),
   controller.updateStatus
+);
+
+// Admin - archive / unarchive
+router.patch('/:id/archive',
+  authenticate,
+  authorize('shop_manager'),
+  controller.archive
+);
+
+router.patch('/:id/unarchive',
+  authenticate,
+  authorize('shop_manager'),
+  controller.unarchive
 );
 
 module.exports = router;

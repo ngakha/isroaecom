@@ -26,6 +26,9 @@ module.exports = {
         secretKey: process.env.STRIPE_SECRET_KEY,
         webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
       },
+      cash_on_delivery: {
+        enabled: true,
+      },
     },
   },
 

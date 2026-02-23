@@ -2,6 +2,9 @@ const { v4: uuid } = require('uuid');
 const { getDatabase } = require('../../core/database');
 const { AppError } = require('../../core/middleware/error-handler');
 const LifecycleHooks = require('../../plugins/hooks/lifecycle');
+const { sendOrderConfirmationEmail } = require('../../utils/mailer');
+const discountsService = require('../discounts/discounts.service');
+const eventBus = require('../../core/events');
 
 const hooks = new LifecycleHooks('orders');
 
@@ -23,9 +26,15 @@ class OrdersService {
     this.db = () => getDatabase();
   }
 
-  async list({ page = 1, limit = 25, status, customerId, search, sortBy = 'created_at', sortOrder = 'desc' }) {
+  async list({ page = 1, limit = 25, status, customerId, search, sortBy = 'created_at', sortOrder = 'desc', archived }) {
     const db = this.db();
     let query = db('orders');
+
+    if (archived === 'true' || archived === true) {
+      query = query.where('orders.is_archived', true);
+    } else if (archived !== 'all') {
+      query = query.where('orders.is_archived', false);
+    }
 
     if (status) query = query.where('orders.status', status);
     if (customerId) query = query.where('orders.customer_id', customerId);
@@ -56,6 +65,22 @@ class OrdersService {
     };
   }
 
+  async archive(id) {
+    const db = this.db();
+    const order = await db('orders').where({ id }).first();
+    if (!order) throw new AppError('Order not found', 404);
+    await db('orders').where({ id }).update({ is_archived: true, updated_at: new Date() });
+    return db('orders').where({ id }).first();
+  }
+
+  async unarchive(id) {
+    const db = this.db();
+    const order = await db('orders').where({ id }).first();
+    if (!order) throw new AppError('Order not found', 404);
+    await db('orders').where({ id }).update({ is_archived: false, updated_at: new Date() });
+    return db('orders').where({ id }).first();
+  }
+
   async findById(id) {
     const db = this.db();
     const order = await db('orders').where({ id }).first();
@@ -82,7 +107,7 @@ class OrdersService {
     await hooks.run('beforeCreate', data);
     const db = this.db();
 
-    return db.transaction(async (trx) => {
+    const orderId = await db.transaction(async (trx) => {
       const id = uuid();
       const orderNumber = await this.generateOrderNumber(trx);
 
@@ -178,8 +203,35 @@ class OrdersService {
       }
 
       await hooks.run('afterCreate', order);
-      return this.findById(id);
+      return id;
     });
+
+    const fullOrder = await this.findById(orderId);
+
+    // Increment coupon usage count
+    if (data.couponCode) {
+      discountsService.incrementUsage(data.couponCode).catch(() => {});
+    }
+
+    // Send order confirmation email (non-blocking)
+    sendOrderConfirmationEmail({
+      email: fullOrder.customer_email,
+      customerName: fullOrder.customer_name,
+      order: fullOrder,
+      items: fullOrder.items,
+      shippingAddress: fullOrder.shippingAddress,
+    }).catch(() => {});
+
+    // Real-time notification to admin
+    eventBus.emit('notification', {
+      type: 'new_order',
+      orderNumber: fullOrder.order_number,
+      customerName: fullOrder.customer_name,
+      total: fullOrder.total,
+      currency: fullOrder.currency,
+    });
+
+    return fullOrder;
   }
 
   /**
@@ -189,6 +241,10 @@ class OrdersService {
     const db = this.db();
     const order = await db('orders').where({ id }).first();
     if (!order) throw new AppError('Order not found', 404);
+
+    if (order.is_archived) {
+      throw new AppError('Cannot update status of an archived order', 400);
+    }
 
     const allowedStatuses = STATUS_FLOW[order.status];
     if (!allowedStatuses || !allowedStatuses.includes(newStatus)) {
@@ -249,10 +305,13 @@ class OrdersService {
   async generateOrderNumber(trx) {
     const prefix = 'ORD';
     const date = new Date().toISOString().slice(2, 10).replace(/-/g, '');
-    const [result] = await trx.raw(
-      "SELECT nextval(pg_get_serial_sequence('order_counter', 'id')) as seq"
-    ).catch(() => [{ seq: Math.floor(Math.random() * 99999) }]);
-    const seq = String(result?.seq || Date.now() % 99999).padStart(5, '0');
+    let seq;
+    try {
+      const result = await trx.raw("SELECT nextval('order_counter_seq') as seq");
+      seq = String(result.rows[0].seq).padStart(5, '0');
+    } catch {
+      seq = String(Date.now() % 99999).padStart(5, '0');
+    }
     return `${prefix}-${date}-${seq}`;
   }
 
@@ -265,16 +324,19 @@ class OrdersService {
     today.setHours(0, 0, 0, 0);
 
     const [totalOrders, todayOrders, totalRevenue, todayRevenue, statusCounts] = await Promise.all([
-      db('orders').count('id as count').first(),
-      db('orders').where('created_at', '>=', today).count('id as count').first(),
+      db('orders').where('is_archived', false).count('id as count').first(),
+      db('orders').where('is_archived', false).where('created_at', '>=', today).count('id as count').first(),
       db('orders')
+        .where('is_archived', false)
         .whereIn('status', ['confirmed', 'processing', 'shipped', 'delivered', 'completed'])
         .sum('total as sum').first(),
       db('orders')
+        .where('is_archived', false)
         .where('created_at', '>=', today)
         .whereIn('status', ['confirmed', 'processing', 'shipped', 'delivered', 'completed'])
         .sum('total as sum').first(),
       db('orders')
+        .where('is_archived', false)
         .select('status')
         .count('id as count')
         .groupBy('status'),

@@ -1,26 +1,59 @@
-import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useNotificationStore } from '../store/notificationStore';
+import useNotifications from '../hooks/useNotifications';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Tag,
-  Image, Settings, LogOut, Menu, X, ChevronDown, FolderTree
+  Image, Settings, LogOut, Menu, X, FolderTree, Truck, CreditCard, Shield, Presentation, PhoneCall
 } from 'lucide-react';
 
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Products', href: '/products', icon: Package },
-  { name: 'Categories', href: '/categories', icon: FolderTree },
-  { name: 'Orders', href: '/orders', icon: ShoppingCart },
-  { name: 'Customers', href: '/customers', icon: Users },
-  { name: 'Discounts', href: '/discounts', icon: Tag },
-  { name: 'Media', href: '/media', icon: Image },
-  { name: 'Settings', href: '/settings', icon: Settings },
+const allNavigation = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['super_admin', 'shop_manager', 'content_editor'] },
+  { name: 'Products', href: '/products', icon: Package, roles: ['super_admin', 'shop_manager', 'content_editor'] },
+  { name: 'Categories', href: '/categories', icon: FolderTree, roles: ['super_admin', 'shop_manager', 'content_editor'] },
+  { name: 'Orders', href: '/orders', icon: ShoppingCart, roles: ['super_admin', 'shop_manager'] },
+  { name: 'Customers', href: '/customers', icon: Users, roles: ['super_admin', 'shop_manager'] },
+  { name: 'Discounts', href: '/discounts', icon: Tag, roles: ['super_admin', 'shop_manager'] },
+  { name: 'Shipping', href: '/shipping', icon: Truck, roles: ['super_admin', 'shop_manager'] },
+  { name: 'Payments', href: '/payments', icon: CreditCard, roles: ['super_admin', 'shop_manager'] },
+  { name: 'Media', href: '/media', icon: Image, roles: ['super_admin', 'shop_manager', 'content_editor'] },
+  { name: 'Call Requests', href: '/call-requests', icon: PhoneCall, roles: ['super_admin', 'shop_manager'] },
+  { name: 'Hero Banner', href: '/heroes', icon: Presentation, roles: ['super_admin'] },
+  { name: 'Admin Users', href: '/admin-users', icon: Shield, roles: ['super_admin'] },
+  { name: 'Settings', href: '/settings', icon: Settings, roles: ['super_admin', 'shop_manager'] },
 ];
 
 export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  useNotifications();
+
+  const pendingOrders = useNotificationStore((s) => s.pendingOrders);
+  const newCallRequests = useNotificationStore((s) => s.newCallRequests);
+  const fetchCounts = useNotificationStore((s) => s.fetchCounts);
+
+  useEffect(() => {
+    fetchCounts();
+  }, []);
+
+  // Refetch counts when navigating to orders or call-requests pages
+  useEffect(() => {
+    if (location.pathname === '/orders' || location.pathname === '/call-requests') {
+      fetchCounts();
+    }
+  }, [location.pathname]);
+
+  const role = user?.role || '';
+  const navigation = allNavigation.filter((item) => item.roles.includes(role));
+
+  const getBadge = (href) => {
+    if (href === '/orders' && pendingOrders > 0) return pendingOrders;
+    if (href === '/call-requests' && newCallRequests > 0) return newCallRequests;
+    return 0;
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -50,24 +83,32 @@ export default function AdminLayout({ children }) {
         </div>
 
         <nav className="mt-4 px-2 space-y-1">
-          {navigation.map((item) => (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              end={item.href === '/'}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                }`
-              }
-            >
-              <item.icon size={18} />
-              {item.name}
-            </NavLink>
-          ))}
+          {navigation.map((item) => {
+            const badge = getBadge(item.href);
+            return (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                end={item.href === '/'}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }`
+                }
+              >
+                <item.icon size={18} />
+                <span className="flex-1">{item.name}</span>
+                {badge > 0 && (
+                  <span className="min-w-[20px] h-5 flex items-center justify-center text-xs font-bold bg-red-500 text-white rounded-full px-1.5">
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
 
         {/* User info at bottom */}
@@ -75,7 +116,7 @@ export default function AdminLayout({ children }) {
           <div className="flex items-center justify-between">
             <div className="text-sm">
               <p className="font-medium">{user?.firstName} {user?.lastName}</p>
-              <p className="text-gray-400 text-xs">{user?.role}</p>
+              <p className="text-gray-400 text-xs">{role.replace(/_/g, ' ')}</p>
             </div>
             <button
               onClick={handleLogout}

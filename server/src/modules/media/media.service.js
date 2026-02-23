@@ -6,12 +6,26 @@ const { getDatabase } = require('../../core/database');
 const { AppError } = require('../../core/middleware/error-handler');
 const config = require('../../../config/default');
 
+/**
+ * Image size presets for ecommerce
+ *
+ * full   — Product detail page zoom / lightbox (1400px max)
+ * md     — Product cards in listing grid (600px max)
+ * thumb  — Admin panel, cart items, square crop (300x300)
+ * micro  — Mini cart, order line items, square crop (80x80)
+ */
+const IMAGE_SIZES = {
+  full:  { width: 1400, height: 1400, fit: 'inside', quality: 85 },
+  md:    { width: 600,  height: 600,  fit: 'inside', quality: 80 },
+  thumb: { width: 300,  height: 300,  fit: 'cover',  quality: 75 },
+  micro: { width: 80,   height: 80,   fit: 'cover',  quality: 70 },
+};
+
 class MediaService {
   constructor() {
     this.db = () => getDatabase();
     this.uploadDir = path.resolve(config.upload.dir);
 
-    // Ensure upload directory exists
     if (!fs.existsSync(this.uploadDir)) {
       fs.mkdirSync(this.uploadDir, { recursive: true });
     }
@@ -44,15 +58,12 @@ class MediaService {
   }
 
   /**
-   * Upload and process a file
+   * Upload and process a file with multiple optimized sizes (WebP)
    */
   async upload(file, folder = '') {
     const db = this.db();
     const id = uuid();
-    const ext = path.extname(file.originalname).toLowerCase();
-    const filename = `${id}${ext}`;
 
-    // Create subfolder if needed
     const targetDir = folder
       ? path.join(this.uploadDir, folder)
       : this.uploadDir;
@@ -61,62 +72,93 @@ class MediaService {
       fs.mkdirSync(targetDir, { recursive: true });
     }
 
-    const filePath = path.join(targetDir, filename);
-    const relativePath = folder ? `${folder}/${filename}` : filename;
-
-    // Process images with sharp
-    let width = null;
-    let height = null;
-    let thumbnailPath = null;
+    const prefixPath = folder ? `${folder}/` : '';
 
     if (file.mimetype.startsWith('image/')) {
-      // Optimize image
-      const image = sharp(file.buffer || file.path);
-      const metadata = await image.metadata();
-      width = metadata.width;
-      height = metadata.height;
+      // ─── Image Processing ─────────────────────────
+      const source = sharp(file.buffer || file.path).rotate(); // auto-rotate from EXIF
+      const metadata = await source.metadata();
 
-      // Save optimized version
-      await image
-        .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 85 })
-        .toFile(filePath);
+      const generated = {};
 
-      // Generate thumbnail
-      const thumbFilename = `thumb_${filename}`;
-      thumbnailPath = folder ? `${folder}/${thumbFilename}` : thumbFilename;
-      await image
-        .resize(300, 300, { fit: 'cover' })
-        .jpeg({ quality: 80 })
-        .toFile(path.join(targetDir, thumbFilename));
+      for (const [sizeName, preset] of Object.entries(IMAGE_SIZES)) {
+        const suffix = sizeName === 'full' ? '' : `_${sizeName}`;
+        const filename = `${id}${suffix}.webp`;
+        const filePath = path.join(targetDir, filename);
+        const relativePath = `${prefixPath}${filename}`;
+
+        await source
+          .clone()
+          .resize({
+            width: preset.width,
+            height: preset.height,
+            fit: preset.fit,
+            withoutEnlargement: true,
+          })
+          .webp({ quality: preset.quality })
+          .toFile(filePath);
+
+        generated[sizeName] = `/uploads/${relativePath}`;
+      }
+
+      const fullFilename = `${id}.webp`;
+      const fullRelativePath = `${prefixPath}${fullFilename}`;
+
+      const [media] = await db('media')
+        .insert({
+          id,
+          original_name: file.originalname,
+          filename: fullFilename,
+          path: fullRelativePath,
+          thumbnail_path: `${prefixPath}${id}_thumb.webp`,
+          mime_type: 'image/webp',
+          size: file.size,
+          width: metadata.width,
+          height: metadata.height,
+          folder: folder || null,
+          url: generated.full,
+          thumbnail_url: generated.thumb,
+          created_at: new Date(),
+        })
+        .returning('*');
+
+      // Attach all size URLs to the response
+      media.sizes = generated;
+
+      return media;
     } else {
-      // Non-image file: move/copy as-is
+      // ─── Non-image file ───────────────────────────
+      const ext = path.extname(file.originalname).toLowerCase();
+      const filename = `${id}${ext}`;
+      const filePath = path.join(targetDir, filename);
+      const relativePath = `${prefixPath}${filename}`;
+
       if (file.buffer) {
         fs.writeFileSync(filePath, file.buffer);
       } else if (file.path) {
         fs.copyFileSync(file.path, filePath);
       }
+
+      const [media] = await db('media')
+        .insert({
+          id,
+          original_name: file.originalname,
+          filename,
+          path: relativePath,
+          thumbnail_path: null,
+          mime_type: file.mimetype,
+          size: file.size,
+          width: null,
+          height: null,
+          folder: folder || null,
+          url: `/uploads/${relativePath}`,
+          thumbnail_url: null,
+          created_at: new Date(),
+        })
+        .returning('*');
+
+      return media;
     }
-
-    const [media] = await db('media')
-      .insert({
-        id,
-        original_name: file.originalname,
-        filename,
-        path: relativePath,
-        thumbnail_path: thumbnailPath,
-        mime_type: file.mimetype,
-        size: file.size,
-        width,
-        height,
-        folder: folder || null,
-        url: `/uploads/${relativePath}`,
-        thumbnail_url: thumbnailPath ? `/uploads/${thumbnailPath}` : null,
-        created_at: new Date(),
-      })
-      .returning('*');
-
-    return media;
   }
 
   /**
@@ -143,13 +185,26 @@ class MediaService {
     const media = await db('media').where({ id }).first();
     if (!media) throw new AppError('Media not found', 404);
 
-    // Delete physical files
-    const filePath = path.join(this.uploadDir, media.path);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    const dir = media.folder
+      ? path.join(this.uploadDir, media.folder)
+      : this.uploadDir;
 
+    // Delete all generated WebP size variants
+    for (const suffix of ['', '_md', '_thumb', '_micro']) {
+      const filePath = path.join(dir, `${id}${suffix}.webp`);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+
+    // Also clean up legacy JPEG files (uploaded before WebP migration)
+    const legacyPath = path.join(this.uploadDir, media.path);
+    if (fs.existsSync(legacyPath) && !legacyPath.endsWith('.webp')) {
+      fs.unlinkSync(legacyPath);
+    }
     if (media.thumbnail_path) {
-      const thumbPath = path.join(this.uploadDir, media.thumbnail_path);
-      if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+      const legacyThumb = path.join(this.uploadDir, media.thumbnail_path);
+      if (fs.existsSync(legacyThumb) && !legacyThumb.endsWith('.webp')) {
+        fs.unlinkSync(legacyThumb);
+      }
     }
 
     await db('media').where({ id }).del();

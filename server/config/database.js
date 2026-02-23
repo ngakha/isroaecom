@@ -8,6 +8,7 @@ module.exports = {
     database: process.env.DB_NAME || 'prshark_ecommerce',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || '',
+    ssl: process.env.DB_HOST && process.env.DB_HOST !== 'localhost' ? { rejectUnauthorized: false } : false,
   },
   pool: {
     min: 2,

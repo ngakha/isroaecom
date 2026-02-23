@@ -4,12 +4,12 @@ const addressSchema = Joi.object({
   first_name: Joi.string().max(100).required(),
   last_name: Joi.string().max(100).required(),
   address_line1: Joi.string().max(500).required(),
-  address_line2: Joi.string().max(500).optional(),
+  address_line2: Joi.string().allow('').max(500).optional(),
   city: Joi.string().max(100).required(),
-  state: Joi.string().max(100).optional(),
-  postal_code: Joi.string().max(20).optional(),
+  state: Joi.string().allow('').max(100).optional(),
+  postal_code: Joi.string().allow('').max(20).optional(),
   country: Joi.string().max(100).required(),
-  phone: Joi.string().max(20).optional(),
+  phone: Joi.string().allow('').max(20).optional(),
 });
 
 const createOrder = Joi.object({
@@ -56,6 +56,7 @@ const listQuery = Joi.object({
   search: Joi.string().max(200).optional(),
   sortBy: Joi.string().valid('created_at', 'total', 'order_number').optional(),
   sortOrder: Joi.string().valid('asc', 'desc').optional(),
+  archived: Joi.string().valid('true', 'false', 'all').optional(),
 });
 
 module.exports = { createOrder, updateStatus, listQuery };

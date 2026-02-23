@@ -2,9 +2,8 @@ const Joi = require('joi');
 
 const createProduct = Joi.object({
   name: Joi.string().min(1).max(500).required(),
-  description: Joi.string().max(10000).optional(),
-  shortDescription: Joi.string().max(500).optional(),
-  sku: Joi.string().max(100).optional(),
+  description: Joi.string().allow('', null).max(10000).optional(),
+  sku: Joi.string().allow('', null).max(100).optional(),
   price: Joi.number().min(0).required(),
   salePrice: Joi.number().min(0).optional(),
   costPrice: Joi.number().min(0).optional(),
@@ -14,8 +13,8 @@ const createProduct = Joi.object({
   trackInventory: Joi.boolean().optional(),
   weight: Joi.number().min(0).optional(),
   status: Joi.string().valid('draft', 'published', 'archived').optional(),
-  metaTitle: Joi.string().max(200).optional(),
-  metaDescription: Joi.string().max(500).optional(),
+  metaTitle: Joi.string().allow('', null).max(200).optional(),
+  metaDescription: Joi.string().allow('', null).max(500).optional(),
   categoryIds: Joi.array().items(Joi.string().uuid()).optional(),
 });
 
@@ -28,7 +27,7 @@ const createCategory = Joi.object({
   name: Joi.string().min(1).max(200).required(),
   description: Joi.string().max(2000).optional(),
   parentId: Joi.string().uuid().allow(null).optional(),
-  imageUrl: Joi.string().uri().optional(),
+  imageUrl: Joi.string().allow('', null).max(500).optional(),
   sortOrder: Joi.number().integer().optional(),
 });
 
@@ -55,6 +54,24 @@ const listQuery = Joi.object({
   sortOrder: Joi.string().valid('asc', 'desc').optional(),
 });
 
+const createAttribute = Joi.object({
+  key: Joi.string().min(1).max(100).required(),
+  value: Joi.string().min(1).max(2000).required(),
+});
+
+const updateAttribute = Joi.object({
+  key: Joi.string().min(1).max(100).optional(),
+  value: Joi.string().min(1).max(2000).optional(),
+});
+
+const addImages = Joi.object({
+  mediaIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
+});
+
+const reorderImages = Joi.object({
+  imageIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
+});
+
 module.exports = {
   createProduct,
   updateProduct,
@@ -62,5 +79,9 @@ module.exports = {
   updateCategory,
   createVariant,
   updateVariant,
+  createAttribute,
+  updateAttribute,
   listQuery,
+  addImages,
+  reorderImages,
 };

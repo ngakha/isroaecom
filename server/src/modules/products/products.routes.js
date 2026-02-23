@@ -6,8 +6,10 @@ const schemas = require('./products.validation');
 
 // ─── Public (Storefront) ──────────────────────────
 router.get('/', validate(schemas.listQuery, 'query'), controller.list);
+router.get('/search', controller.search);
 router.get('/slug/:slug', controller.getBySlug);
 router.get('/categories', controller.listCategories);
+router.get('/:id/related', controller.getRelated);
 router.get('/:id', controller.getById);
 
 // ─── Admin ─────────────────────────────────────────
@@ -31,6 +33,27 @@ router.delete('/:id',
   controller.delete
 );
 
+// ─── Images ───────────────────────────────────────
+router.post('/:id/images',
+  authenticate,
+  authorize('shop_manager', 'content_editor'),
+  validate(schemas.addImages),
+  controller.addImages
+);
+
+router.delete('/:id/images/:imageId',
+  authenticate,
+  authorize('shop_manager', 'content_editor'),
+  controller.removeImage
+);
+
+router.put('/:id/images/reorder',
+  authenticate,
+  authorize('shop_manager', 'content_editor'),
+  validate(schemas.reorderImages),
+  controller.reorderImages
+);
+
 // ─── Variants ──────────────────────────────────────
 router.post('/:id/variants',
   authenticate,
@@ -50,6 +73,27 @@ router.delete('/:id/variants/:variantId',
   authenticate,
   authorize('shop_manager'),
   controller.deleteVariant
+);
+
+// ─── Attributes ──────────────────────────────────
+router.post('/:id/attributes',
+  authenticate,
+  authorize('shop_manager', 'content_editor'),
+  validate(schemas.createAttribute),
+  controller.addAttribute
+);
+
+router.put('/:id/attributes/:attributeId',
+  authenticate,
+  authorize('shop_manager', 'content_editor'),
+  validate(schemas.updateAttribute),
+  controller.updateAttribute
+);
+
+router.delete('/:id/attributes/:attributeId',
+  authenticate,
+  authorize('shop_manager'),
+  controller.deleteAttribute
 );
 
 // ─── Categories (admin) ───────────────────────────

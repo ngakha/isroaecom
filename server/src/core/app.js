@@ -50,6 +50,22 @@ pluginManager.loadAll();
 const autoRouter = new AutoRouter(app);
 autoRouter.loadModules();
 
+// ─── Serve Built Frontends in Production ───────────
+if (config.app.env === 'production') {
+  const adminBuildPath = path.resolve(__dirname, '../../../admin/dist');
+  app.use('/admin', express.static(adminBuildPath));
+  app.get('/admin/*', (req, res) => {
+    res.sendFile(path.join(adminBuildPath, 'index.html'));
+  });
+
+  const storefrontBuildPath = path.resolve(__dirname, '../../../storefront/dist');
+  app.use(express.static(storefrontBuildPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
+    res.sendFile(path.join(storefrontBuildPath, 'index.html'));
+  });
+}
+
 // ─── 404 & Error Handling ──────────────────────────
 app.use(notFoundHandler);
 app.use(errorHandler);

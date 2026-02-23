@@ -1,10 +1,13 @@
 import { useState, useRef } from 'react';
 import { Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 import { usePaginatedApi } from '../../hooks/useApi';
+import { useAuthStore } from '../../store/authStore';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function MediaPage() {
+  const { user } = useAuthStore();
+  const canDelete = user?.role === 'super_admin' || user?.role === 'shop_manager';
   const { data: files, loading, refetch } = usePaginatedApi('/media');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
@@ -105,14 +108,16 @@ export default function MediaPage() {
               )}
 
               {/* Overlay */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <button
-                  onClick={() => handleDelete(file.id)}
-                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
+              {canDelete && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <button
+                    onClick={() => handleDelete(file.id)}
+                    className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              )}
 
               {/* Info */}
               <div className="p-2">

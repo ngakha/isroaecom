@@ -4,6 +4,7 @@ const { v4: uuid } = require('uuid');
 const { getDatabase } = require('../../core/database');
 const config = require('../../../config/default');
 const { AppError } = require('../../core/middleware/error-handler');
+const { sendWelcomeEmail } = require('../../utils/mailer');
 
 class AuthService {
   constructor() {
@@ -55,34 +56,13 @@ class AuthService {
       throw new AppError('Account deactivated', 403);
     }
 
-    // Check lockout
-    if (user.locked_until && new Date(user.locked_until) > new Date()) {
-      const minutesLeft = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
-      throw new AppError(`Account locked. Try again in ${minutesLeft} minutes.`, 423, 'ACCOUNT_LOCKED');
-    }
-
     const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
-      // Increment failed attempts
-      const failedAttempts = (user.failed_login_attempts || 0) + 1;
-      const updateData = { failed_login_attempts: failedAttempts };
-
-      if (failedAttempts >= config.security.accountLockout.maxAttempts) {
-        updateData.locked_until = new Date(
-          Date.now() + config.security.accountLockout.durationMinutes * 60000
-        );
-        updateData.failed_login_attempts = 0;
-      }
-
-      await db('admin_users').where({ id: user.id }).update(updateData);
       throw new AppError('Invalid credentials', 401);
     }
 
-    // Reset failed attempts on success
     await db('admin_users').where({ id: user.id }).update({
-      failed_login_attempts: 0,
-      locked_until: null,
       last_login: new Date(),
     });
 
@@ -130,6 +110,9 @@ class AuthService {
 
     const tokens = this.generateTokens({ ...customer, role: 'customer' });
     await this.storeRefreshToken(id, tokens.refreshToken);
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail({ email, firstName }).catch(() => {});
 
     return { customer, ...tokens };
   }
@@ -233,6 +216,40 @@ class AuthService {
 
     // Revoke all refresh tokens for this user
     await db('refresh_tokens').where({ user_id: userId }).update({ revoked: true });
+  }
+
+  // ─── Admin Users Management ────────────────────────
+
+  async listAdmins() {
+    const db = this.db();
+    return db('admin_users')
+      .select('id', 'email', 'first_name', 'last_name', 'role', 'is_active', 'last_login', 'created_at')
+      .orderBy('created_at', 'desc');
+  }
+
+  async updateAdmin(id, data) {
+    const db = this.db();
+    const updateData = { updated_at: new Date() };
+
+    if (data.firstName !== undefined) updateData.first_name = data.firstName;
+    if (data.lastName !== undefined) updateData.last_name = data.lastName;
+    if (data.role !== undefined) updateData.role = data.role;
+    if (data.isActive !== undefined) updateData.is_active = data.isActive;
+
+    const [user] = await db('admin_users')
+      .where({ id })
+      .update(updateData)
+      .returning(['id', 'email', 'first_name', 'last_name', 'role', 'is_active']);
+
+    if (!user) throw new AppError('Admin user not found', 404);
+    return user;
+  }
+
+  async deleteAdmin(id) {
+    const db = this.db();
+    await db('refresh_tokens').where({ user_id: id }).update({ revoked: true });
+    const deleted = await db('admin_users').where({ id }).del();
+    if (!deleted) throw new AppError('Admin user not found', 404);
   }
 
   // ─── Private Helpers ─────────────────────────────

@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const controller = require('./auth.controller');
 const { validate } = require('../../core/middleware/validate');
-const { authenticate } = require('../../core/middleware/auth');
+const { authenticate, authorize } = require('../../core/middleware/auth');
 const { loginRateLimitMiddleware } = require('../../core/middleware/security');
 const { checkAccountLockout } = require('../../core/middleware/auth');
 const schemas = require('./auth.validation');
@@ -21,6 +21,11 @@ router.post(
   validate(schemas.adminLogin),
   controller.adminLogin
 );
+
+// Admin users management
+router.get('/admin/users', authenticate, authorize('shop_manager'), controller.listAdmins);
+router.put('/admin/users/:id', authenticate, authorize('super_admin'), controller.updateAdmin);
+router.delete('/admin/users/:id', authenticate, authorize('super_admin'), controller.deleteAdmin);
 
 // Customer auth
 router.post(

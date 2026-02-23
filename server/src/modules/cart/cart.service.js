@@ -60,6 +60,12 @@ class CartService {
       }
     }
 
+    // Fetch product images for cart items
+    const productIds = [...new Set(items.map((item) => item.product_id))];
+    const images = productIds.length
+      ? await db('product_images').whereIn('product_id', productIds).orderBy('sort_order')
+      : [];
+
     // Calculate totals
     let subtotal = 0;
     const validItems = items.filter((item) => item.status === 'published');
@@ -68,6 +74,9 @@ class CartService {
         ? (item.variant_price || item.product_price)
         : (item.sale_price || item.product_price);
       subtotal += price * item.quantity;
+      // Attach first image
+      const productImages = images.filter((img) => img.product_id === item.product_id);
+      item.image = productImages[0] || null;
     }
 
     return {

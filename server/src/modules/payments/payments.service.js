@@ -103,11 +103,33 @@ class StripeProvider extends PaymentProviderBase {
   }
 }
 
+/**
+ * Cash on Delivery Provider
+ */
+class CashOnDeliveryProvider extends PaymentProviderBase {
+  async initiate(order) {
+    return {
+      provider: 'cash_on_delivery',
+      paymentUrl: null,
+      transactionId: `cod_${Date.now()}`,
+    };
+  }
+
+  async verify(transactionId) {
+    return { status: 'pending', transactionId };
+  }
+
+  async handleWebhook(payload, signature) {
+    return { orderId: payload.order_id, status: payload.status };
+  }
+}
+
 // Provider registry
 const PROVIDERS = {
   bog: BOGProvider,
   tbc: TBCProvider,
   stripe: StripeProvider,
+  cash_on_delivery: CashOnDeliveryProvider,
 };
 
 class PaymentsService {
@@ -141,8 +163,17 @@ class PaymentsService {
     const provider = this.getProvider(providerName);
     const result = await provider.initiate(order);
 
-    // Update order with payment info
-    await ordersService.updatePaymentStatus(orderId, 'processing', result.transactionId);
+    if (providerName === 'cash_on_delivery') {
+      // COD: payment is pending until delivery, confirm order immediately
+      await ordersService.updatePaymentStatus(orderId, 'pending', result.transactionId);
+      try {
+        await ordersService.updateStatus(orderId, 'confirmed', 'Cash on delivery — payment on receipt');
+      } catch {
+        // Order might already be confirmed
+      }
+    } else {
+      await ordersService.updatePaymentStatus(orderId, 'processing', result.transactionId);
+    }
 
     return result;
   }
@@ -178,9 +209,16 @@ class PaymentsService {
     const methods = [];
     const { providers } = pluginConfig.payments;
 
+    const labels = {
+      bog: 'Bank of Georgia',
+      tbc: 'TBC Bank',
+      stripe: 'Stripe',
+      cash_on_delivery: 'Cash on Delivery',
+    };
+
     for (const [name, config] of Object.entries(providers)) {
       if (config.enabled) {
-        methods.push({ name, label: name.toUpperCase() });
+        methods.push({ name, label: labels[name] || name.toUpperCase() });
       }
     }
 

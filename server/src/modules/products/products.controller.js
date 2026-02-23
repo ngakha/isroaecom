@@ -12,6 +12,24 @@ class ProductsController {
     }
   }
 
+  async search(req, res, next) {
+    try {
+      const results = await productsService.search(req.query.q, parseInt(req.query.limit) || 6);
+      res.json({ data: results });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getRelated(req, res, next) {
+    try {
+      const related = await productsService.getRelated(req.params.id, parseInt(req.query.limit) || 4);
+      res.json({ data: related });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getById(req, res, next) {
     try {
       const product = await productsService.findById(req.params.id);
@@ -81,6 +99,64 @@ class ProductsController {
     try {
       await productsService.deleteVariant(req.params.variantId);
       res.json({ message: 'Variant deleted' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ─── Images ─────────────────────────────────────
+
+  async addImages(req, res, next) {
+    try {
+      const images = await productsService.addImages(req.params.id, req.body.mediaIds);
+      res.status(201).json({ data: images });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async removeImage(req, res, next) {
+    try {
+      await productsService.removeImage(req.params.id, req.params.imageId);
+      res.json({ message: 'Image removed' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async reorderImages(req, res, next) {
+    try {
+      const images = await productsService.reorderImages(req.params.id, req.body.imageIds);
+      res.json({ data: images });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ─── Attributes ─────────────────────────────────
+
+  async addAttribute(req, res, next) {
+    try {
+      const attribute = await productsService.addAttribute(req.params.id, req.body);
+      res.status(201).json({ data: attribute });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateAttribute(req, res, next) {
+    try {
+      const attribute = await productsService.updateAttribute(req.params.attributeId, req.body);
+      res.json({ data: attribute });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteAttribute(req, res, next) {
+    try {
+      await productsService.deleteAttribute(req.params.attributeId);
+      res.json({ message: 'Attribute deleted' });
     } catch (error) {
       next(error);
     }

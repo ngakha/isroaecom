@@ -84,6 +84,115 @@ class ProductsService {
   }
 
   /**
+   * Lightweight search for live/autocomplete (returns minimal data, fast)
+   */
+  async search(query, limit = 6) {
+    const db = this.db();
+    if (!query || query.length < 2) return [];
+
+    const products = await db('products')
+      .where('is_deleted', false)
+      .where('status', 'published')
+      .where((builder) => {
+        builder
+          .whereILike('name', `%${query}%`)
+          .orWhereILike('sku', `%${query}%`);
+      })
+      .select('id', 'name', 'slug', 'price', 'sale_price')
+      .orderBy('name')
+      .limit(limit);
+
+    const productIds = products.map((p) => p.id);
+    const images = productIds.length
+      ? await db('product_images')
+          .whereIn('product_id', productIds)
+          .where('sort_order', 0)
+          .select('product_id', 'thumbnail_url', 'url')
+      : [];
+
+    return products.map((p) => ({
+      ...p,
+      image: images.find((i) => i.product_id === p.id)?.thumbnail_url
+        || images.find((i) => i.product_id === p.id)?.url
+        || null,
+    }));
+  }
+
+  /**
+   * Get related products for a given product
+   * Strategy: same categories first, then same price range as fallback
+   */
+  async getRelated(productId, limit = 4) {
+    const db = this.db();
+
+    const product = await db('products').where({ id: productId, is_deleted: false }).first();
+    if (!product) return [];
+
+    // Get category IDs for this product
+    const categoryLinks = await db('product_categories').where({ product_id: productId });
+    const categoryIds = categoryLinks.map((c) => c.category_id);
+
+    let relatedIds = [];
+
+    // Strategy 1: Products in the same categories
+    if (categoryIds.length > 0) {
+      const sameCat = await db('product_categories')
+        .whereIn('category_id', categoryIds)
+        .whereNot('product_id', productId)
+        .distinct('product_id')
+        .limit(limit);
+      relatedIds = sameCat.map((r) => r.product_id);
+    }
+
+    // Strategy 2: If not enough, fill with similar price range
+    if (relatedIds.length < limit) {
+      const remaining = limit - relatedIds.length;
+      const priceRange = parseFloat(product.price) * 0.5;
+      const priceLow = Math.max(0, parseFloat(product.price) - priceRange);
+      const priceHigh = parseFloat(product.price) + priceRange;
+
+      const priceBased = await db('products')
+        .where('is_deleted', false)
+        .where('status', 'published')
+        .whereNot('id', productId)
+        .whereNotIn('id', relatedIds)
+        .whereBetween('price', [priceLow, priceHigh])
+        .select('id')
+        .orderByRaw('RANDOM()')
+        .limit(remaining);
+
+      relatedIds = [...relatedIds, ...priceBased.map((r) => r.id)];
+    }
+
+    if (relatedIds.length === 0) return [];
+
+    // Fetch full product data
+    const products = await db('products')
+      .whereIn('id', relatedIds)
+      .where('is_deleted', false)
+      .where('status', 'published')
+      .limit(limit);
+
+    const ids = products.map((p) => p.id);
+
+    const [categories, variants, images] = await Promise.all([
+      db('product_categories')
+        .join('categories', 'product_categories.category_id', 'categories.id')
+        .whereIn('product_categories.product_id', ids)
+        .select('product_categories.product_id', 'categories.*'),
+      db('product_variants').whereIn('product_id', ids),
+      db('product_images').whereIn('product_id', ids).orderBy('sort_order'),
+    ]);
+
+    return products.map((p) => ({
+      ...p,
+      categories: categories.filter((c) => c.product_id === p.id),
+      variants: variants.filter((v) => v.product_id === p.id),
+      images: images.filter((i) => i.product_id === p.id),
+    }));
+  }
+
+  /**
    * Get single product by ID or slug
    */
   async findById(id) {
@@ -121,14 +230,21 @@ class ProductsService {
     const id = uuid();
     const slug = await generateUniqueSlug(data.name, 'products');
 
+    // Auto-generate SKU if not provided
+    const sku = data.sku || await this.generateSku(data.name);
+
+    // Auto-generate SEO fields if not provided
+    const metaTitle = data.metaTitle || data.name;
+    const metaDescription = data.metaDescription
+      || (data.description ? data.description.substring(0, 160) : null);
+
     const [product] = await db('products')
       .insert({
         id,
         name: data.name,
         slug,
         description: data.description || null,
-        short_description: data.shortDescription || null,
-        sku: data.sku || null,
+        sku,
         price: data.price,
         sale_price: data.salePrice || null,
         cost_price: data.costPrice || null,
@@ -138,8 +254,8 @@ class ProductsService {
         track_inventory: data.trackInventory !== false,
         weight: data.weight || null,
         status: data.status || 'draft',
-        meta_title: data.metaTitle || null,
-        meta_description: data.metaDescription || null,
+        meta_title: metaTitle,
+        meta_description: metaDescription,
         created_at: new Date(),
         updated_at: new Date(),
       })
@@ -175,7 +291,6 @@ class ProductsService {
       updateData.slug = await generateUniqueSlug(data.name, 'products', id);
     }
     if (data.description !== undefined) updateData.description = data.description;
-    if (data.shortDescription !== undefined) updateData.short_description = data.shortDescription;
     if (data.sku !== undefined) updateData.sku = data.sku;
     if (data.price !== undefined) updateData.price = data.price;
     if (data.salePrice !== undefined) updateData.sale_price = data.salePrice;
@@ -330,13 +445,143 @@ class ProductsService {
 
   async deleteCategory(id) {
     const db = this.db();
-    // Move child categories to parent
     const category = await db('categories').where({ id }).first();
     if (!category) throw new AppError('Category not found', 404);
 
-    await db('categories').where({ parent_id: id }).update({ parent_id: category.parent_id });
-    await db('product_categories').where({ category_id: id }).del();
-    await db('categories').where({ id }).del();
+    await db.transaction(async (trx) => {
+      await trx('categories').where({ parent_id: id }).update({ parent_id: category.parent_id });
+      await trx('product_categories').where({ category_id: id }).del();
+      await trx('categories').where({ id }).del();
+    });
+  }
+
+  // ─── Product Images ─────────────────────────────
+
+  async addImages(productId, mediaIds) {
+    const db = this.db();
+    const existing = await db('products').where({ id: productId, is_deleted: false }).first();
+    if (!existing) throw new AppError('Product not found', 404);
+
+    const mediaService = require('../media/media.service');
+    const currentMax = await db('product_images')
+      .where({ product_id: productId })
+      .max('sort_order as max')
+      .first();
+    let sortOrder = (currentMax?.max ?? -1) + 1;
+
+    const images = [];
+    for (const mediaId of mediaIds) {
+      const media = await mediaService.findById(mediaId);
+      const id = require('uuid').v4();
+      const [image] = await db('product_images')
+        .insert({
+          id,
+          product_id: productId,
+          media_id: mediaId,
+          url: media.url,
+          thumbnail_url: media.thumbnail_url,
+          sort_order: sortOrder++,
+        })
+        .returning('*');
+      images.push(image);
+    }
+    return images;
+  }
+
+  async removeImage(productId, imageId) {
+    const db = this.db();
+    const deleted = await db('product_images')
+      .where({ id: imageId, product_id: productId })
+      .del();
+    if (!deleted) throw new AppError('Image not found', 404);
+  }
+
+  async reorderImages(productId, imageIds) {
+    const db = this.db();
+    for (let i = 0; i < imageIds.length; i++) {
+      await db('product_images')
+        .where({ id: imageIds[i], product_id: productId })
+        .update({ sort_order: i });
+    }
+    return db('product_images')
+      .where({ product_id: productId })
+      .orderBy('sort_order');
+  }
+
+  // ─── Product Attributes ────────────────────────
+
+  async addAttribute(productId, data) {
+    const db = this.db();
+    const existing = await db('products').where({ id: productId, is_deleted: false }).first();
+    if (!existing) throw new AppError('Product not found', 404);
+
+    const id = uuid();
+    const [attribute] = await db('product_attributes')
+      .insert({
+        id,
+        product_id: productId,
+        key: data.key,
+        value: data.value,
+      })
+      .returning('*');
+
+    return attribute;
+  }
+
+  async updateAttribute(attributeId, data) {
+    const db = this.db();
+    const updateData = {};
+    if (data.key !== undefined) updateData.key = data.key;
+    if (data.value !== undefined) updateData.value = data.value;
+
+    const [attribute] = await db('product_attributes')
+      .where({ id: attributeId })
+      .update(updateData)
+      .returning('*');
+
+    if (!attribute) throw new AppError('Attribute not found', 404);
+    return attribute;
+  }
+
+  async deleteAttribute(attributeId) {
+    const db = this.db();
+    const deleted = await db('product_attributes').where({ id: attributeId }).del();
+    if (!deleted) throw new AppError('Attribute not found', 404);
+  }
+
+  /**
+   * Generate a unique SKU from product name
+   * Format: ABC-12345 (3-letter prefix from name + 5-digit number)
+   */
+  async generateSku(name) {
+    const db = this.db();
+    const prefix = name
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .substring(0, 3)
+      .toUpperCase()
+      .padEnd(3, 'X');
+
+    // Find the highest existing numeric suffix for this prefix
+    const existing = await db('products')
+      .where('sku', 'like', `${prefix}-%`)
+      .orderBy('sku', 'desc')
+      .first();
+
+    let num = 1;
+    if (existing?.sku) {
+      const match = existing.sku.match(/-(\d+)$/);
+      if (match) num = parseInt(match[1], 10) + 1;
+    }
+
+    const sku = `${prefix}-${String(num).padStart(5, '0')}`;
+
+    // Ensure uniqueness
+    const duplicate = await db('products').where({ sku }).first();
+    if (duplicate) {
+      return `${prefix}-${String(Date.now() % 100000).padStart(5, '0')}`;
+    }
+
+    return sku;
   }
 
   buildCategoryTree(categories, parentId = null) {
