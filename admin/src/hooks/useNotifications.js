@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 import { useNotificationStore } from '../store/notificationStore';
 
@@ -65,92 +65,55 @@ function showNotification(data) {
   }
 }
 
-async function refreshAccessToken() {
-  try {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) return null;
-    const { data } = await axios.post('/api/auth/refresh', { refreshToken });
-    localStorage.setItem('accessToken', data.data.accessToken);
-    localStorage.setItem('refreshToken', data.data.refreshToken);
-    return data.data.accessToken;
-  } catch {
-    return null;
-  }
-}
+const POLL_INTERVAL = 10000; // 10 seconds
 
 export default function useNotifications() {
-  const eventSourceRef = useRef(null);
-  const retryRef = useRef(null);
-  const failCountRef = useRef(0);
+  const lastPollRef = useRef(new Date().toISOString());
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function connect() {
+    async function poll() {
       if (cancelled) return;
 
-      let token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('accessToken');
       if (!token) return;
 
-      // Close existing connection
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
+      try {
+        const { data } = await api.get('/notifications/poll', {
+          params: { since: lastPollRef.current },
+        });
 
-      const es = new EventSource(`/api/notifications/stream?token=${encodeURIComponent(token)}`);
-      eventSourceRef.current = es;
+        if (data.serverTime) {
+          lastPollRef.current = data.serverTime;
+        }
 
-      es.onopen = () => {
-        failCountRef.current = 0;
-      };
-
-      es.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
+        const notifications = data.data || [];
+        if (notifications.length > 0) {
           playSound();
-          showNotification(data);
-          if (data.type === 'new_order') {
-            useNotificationStore.getState().incrementOrders();
-          } else if (data.type === 'new_call_request') {
-            useNotificationStore.getState().incrementCallRequests();
-          }
-        } catch {
-          // Ignore parse errors
-        }
-      };
 
-      es.onerror = async () => {
-        es.close();
-        eventSourceRef.current = null;
-        if (cancelled) return;
-
-        failCountRef.current += 1;
-
-        // After 3 consecutive fails, try refreshing the token
-        if (failCountRef.current >= 2) {
-          const newToken = await refreshAccessToken();
-          if (!newToken) {
-            // Can't refresh — stop trying (user will be redirected on next API call)
-            return;
+          for (const n of notifications) {
+            showNotification(n);
+            if (n.type === 'new_order') {
+              useNotificationStore.getState().incrementOrders();
+            } else if (n.type === 'new_call_request') {
+              useNotificationStore.getState().incrementCallRequests();
+            }
           }
         }
-
-        // Reconnect with backoff: 5s, 10s, 15s... max 30s
-        const delay = Math.min(failCountRef.current * 5000, 30000);
-        retryRef.current = setTimeout(connect, delay);
-      };
+      } catch {
+        // Silently fail — will retry on next interval
+      }
     }
 
-    connect();
+    // Start polling
+    intervalRef.current = setInterval(poll, POLL_INTERVAL);
 
     return () => {
       cancelled = true;
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      if (retryRef.current) {
-        clearTimeout(retryRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
       }
     };
   }, []);
