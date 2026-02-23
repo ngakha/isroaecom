@@ -81,6 +81,10 @@ export default function ProductPage() {
     );
   }
 
+  const variantImageIndex = selectedVariant?.image_id
+    ? (product.images || []).findIndex((img) => img.id === selectedVariant.image_id)
+    : undefined;
+
   const activePrice = selectedVariant
     ? { price: selectedVariant.price, salePrice: selectedVariant.sale_price }
     : { price: product.price, salePrice: product.sale_price };
@@ -138,7 +142,7 @@ export default function ProductPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 pb-10">
         {/* Gallery - LEFT */}
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <ProductGallery images={product.images || []} />
+          <ProductGallery images={product.images || []} activeImageIndex={variantImageIndex >= 0 ? variantImageIndex : undefined} />
         </div>
 
         {/* Info - RIGHT */}

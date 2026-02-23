@@ -198,7 +198,7 @@ export default function ProductFormPage() {
 
   // ─── Variants ───────────────────────────────────
 
-  const [variantForm, setVariantForm] = useState({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0' });
+  const [variantForm, setVariantForm] = useState({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0', imageId: null });
   const [editingVariant, setEditingVariant] = useState(null);
   const [showVariantForm, setShowVariantForm] = useState(false);
 
@@ -214,6 +214,7 @@ export default function ProductFormPage() {
       price: parseFloat(variantForm.price),
       salePrice: variantForm.salePrice ? parseFloat(variantForm.salePrice) : undefined,
       stockQuantity: parseInt(variantForm.stockQuantity) || 0,
+      imageId: variantForm.imageId || null,
     };
 
     if (isEdit) {
@@ -234,14 +235,14 @@ export default function ProductFormPage() {
     } else {
       // Create mode: store locally
       if (editingVariant) {
-        setVariants((prev) => prev.map((v) => v._tempId === editingVariant ? { ...v, ...payload, sale_price: payload.salePrice, stock_quantity: payload.stockQuantity } : v));
+        setVariants((prev) => prev.map((v) => v._tempId === editingVariant ? { ...v, ...payload, sale_price: payload.salePrice, stock_quantity: payload.stockQuantity, image_id: payload.imageId } : v));
         toast.success('Variant updated');
       } else {
-        setVariants((prev) => [...prev, { ...payload, sale_price: payload.salePrice, stock_quantity: payload.stockQuantity, _tempId: Date.now() }]);
+        setVariants((prev) => [...prev, { ...payload, sale_price: payload.salePrice, stock_quantity: payload.stockQuantity, image_id: payload.imageId, _tempId: Date.now() }]);
         toast.success('Variant added');
       }
     }
-    setVariantForm({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0' });
+    setVariantForm({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0', imageId: null });
     setEditingVariant(null);
     setShowVariantForm(false);
   };
@@ -253,6 +254,7 @@ export default function ProductFormPage() {
       price: String(variant.price),
       salePrice: String(variant.sale_price || ''),
       stockQuantity: String(variant.stock_quantity || '0'),
+      imageId: variant.image_id || null,
     });
     setEditingVariant(variant.id || variant._tempId);
     setShowVariantForm(true);
@@ -375,6 +377,7 @@ export default function ProductFormPage() {
             price: parseFloat(v.price),
             salePrice: v.sale_price ? parseFloat(v.sale_price) : undefined,
             stockQuantity: parseInt(v.stock_quantity) || 0,
+            imageId: v.image_id || null,
           });
         }
         // Save pending attributes
@@ -531,7 +534,7 @@ export default function ProductFormPage() {
                 <h3 className="font-semibold">Variants</h3>
                 <button
                   type="button"
-                  onClick={() => { setShowVariantForm(true); setEditingVariant(null); setVariantForm({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0' }); }}
+                  onClick={() => { setShowVariantForm(true); setEditingVariant(null); setVariantForm({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0', imageId: null }); }}
                   className="btn-secondary text-xs flex items-center gap-1"
                 >
                   <Plus size={14} /> Add Variant
@@ -540,16 +543,23 @@ export default function ProductFormPage() {
 
               {variants.length > 0 && (
                 <div className="divide-y">
-                  {variants.map((v) => (
+                  {variants.map((v) => {
+                    const variantImg = v.image_id ? currentImages.find((img) => img.id === v.image_id) : null;
+                    return (
                     <div key={v.id || v._tempId} className="flex items-center justify-between py-3">
-                      <div>
-                        <p className="font-medium text-sm">{v.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {v.sku && `SKU: ${v.sku} · `}
-                          Price: {v.price}
-                          {v.sale_price ? ` (Sale: ${v.sale_price})` : ''}
-                          {' · '}Stock: {v.stock_quantity}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        {variantImg && (
+                          <img src={variantImg.thumbnail_url || variantImg.url} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" />
+                        )}
+                        <div>
+                          <p className="font-medium text-sm">{v.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {v.sku && `SKU: ${v.sku} · `}
+                            Price: {v.price}
+                            {v.sale_price ? ` (Sale: ${v.sale_price})` : ''}
+                            {' · '}Stock: {v.stock_quantity}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex gap-1">
                         <button type="button" onClick={() => handleEditVariant(v)} className="p-1.5 text-gray-400 hover:text-primary-600">
@@ -560,7 +570,8 @@ export default function ProductFormPage() {
                         </button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -588,6 +599,34 @@ export default function ProductFormPage() {
                       <input type="number" className="input" value={variantForm.stockQuantity} onChange={(e) => setVariantForm((p) => ({ ...p, stockQuantity: e.target.value }))} />
                     </div>
                   </div>
+                  {currentImages.length > 0 && (
+                    <div>
+                      <label className="label">Variant Image</label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => setVariantForm((p) => ({ ...p, imageId: null }))}
+                          className={`w-14 h-14 rounded-md border-2 flex items-center justify-center text-xs text-gray-400 transition-colors ${
+                            !variantForm.imageId ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          None
+                        </button>
+                        {currentImages.map((img) => (
+                          <button
+                            key={img.id}
+                            type="button"
+                            onClick={() => setVariantForm((p) => ({ ...p, imageId: img.id }))}
+                            className={`w-14 h-14 rounded-md border-2 overflow-hidden transition-colors ${
+                              variantForm.imageId === img.id ? 'border-primary-500 ring-1 ring-primary-500' : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <img src={img.thumbnail_url || img.url} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <button type="button" onClick={handleSaveVariant} className="btn-primary text-xs">
                       {editingVariant ? 'Update' : 'Add'}

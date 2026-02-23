@@ -356,6 +356,7 @@ class ProductsService {
         sale_price: data.salePrice || null,
         stock_quantity: data.stockQuantity || 0,
         attributes: JSON.stringify(data.attributes || {}),
+        image_id: data.imageId || null,
         is_active: true,
         created_at: new Date(),
       })
@@ -375,6 +376,7 @@ class ProductsService {
     if (data.stockQuantity !== undefined) updateData.stock_quantity = data.stockQuantity;
     if (data.attributes !== undefined) updateData.attributes = JSON.stringify(data.attributes);
     if (data.isActive !== undefined) updateData.is_active = data.isActive;
+    if (data.imageId !== undefined) updateData.image_id = data.imageId || null;
 
     const [variant] = await db('product_variants')
       .where({ id: variantId })

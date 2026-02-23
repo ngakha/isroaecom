@@ -40,6 +40,7 @@ const createVariant = Joi.object({
   salePrice: Joi.number().min(0).optional(),
   stockQuantity: Joi.number().integer().min(0).optional(),
   attributes: Joi.object().optional(),
+  imageId: Joi.string().uuid().allow(null).optional(),
 });
 
 const updateVariant = createVariant.fork(['name', 'price'], (schema) => schema.optional());
