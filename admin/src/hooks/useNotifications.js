@@ -5,12 +5,13 @@ import { useNotificationStore } from '../store/notificationStore';
 
 let audio = null;
 let audioUnlocked = false;
+const SOUND_URL = (import.meta.env.BASE_URL || '/') + 'sounds/notification.mp3';
 
 // Unlock audio on first user interaction (browser autoplay policy)
 function unlockAudio() {
   if (audioUnlocked) return;
   try {
-    audio = new Audio('/sounds/notification.mp3');
+    audio = new Audio(SOUND_URL);
     audio.volume = 0;
     audio.play().then(() => {
       audio.pause();
@@ -24,14 +25,15 @@ function unlockAudio() {
 }
 
 if (typeof document !== 'undefined') {
-  document.addEventListener('click', unlockAudio, { once: true });
-  document.addEventListener('keydown', unlockAudio, { once: true });
+  ['click', 'keydown', 'touchstart'].forEach((evt) => {
+    document.addEventListener(evt, unlockAudio, { once: true });
+  });
 }
 
 function playSound() {
   try {
     if (!audio) {
-      audio = new Audio('/sounds/notification.mp3');
+      audio = new Audio(SOUND_URL);
     }
     audio.currentTime = 0;
     audio.play().catch(() => {});
