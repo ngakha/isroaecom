@@ -216,6 +216,7 @@ export default function ProductFormPage() {
       stockQuantity: parseInt(variantForm.stockQuantity) || 0,
       imageId: variantForm.imageId || null,
     };
+    console.log('[Variant payload]', JSON.stringify(payload));
 
     if (isEdit) {
       try {
@@ -229,7 +230,11 @@ export default function ProductFormPage() {
           toast.success('Variant added');
         }
       } catch (err) {
-        toast.error(err.response?.data?.error || 'Failed to save variant');
+        const details = err.response?.data?.details;
+        const msg = details?.length
+          ? details.map((d) => `${d.field}: ${d.message}`).join(', ')
+          : err.response?.data?.error || 'Failed to save variant';
+        toast.error(msg);
         return;
       }
     } else {
