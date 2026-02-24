@@ -406,6 +406,20 @@ class ProductsService {
 
     await db('products').where({ id }).update(updateData);
 
+    // Sync product changes to self-variant for expanded products
+    if (existing.variant_group_id) {
+      const selfVariantUpdate = {};
+      if (data.price !== undefined) selfVariantUpdate.price = data.price;
+      if (data.salePrice !== undefined) selfVariantUpdate.sale_price = data.salePrice;
+      if (data.stockQuantity !== undefined) selfVariantUpdate.stock_quantity = data.stockQuantity;
+      if (data.sku !== undefined) selfVariantUpdate.sku = data.sku;
+      if (Object.keys(selfVariantUpdate).length) {
+        await db('product_variants')
+          .where({ product_id: id, url: null })
+          .update(selfVariantUpdate);
+      }
+    }
+
     // Update categories if provided
     if (data.categoryIds) {
       await db('product_categories').where({ product_id: id }).del();
@@ -620,6 +634,23 @@ class ProductsService {
       .returning('*');
 
     if (!variant) throw new AppError('Variant not found', 404);
+
+    // Sync self-variant changes back to the parent product
+    if (!variant.url) {
+      const product = await db('products').where({ id: variant.product_id }).first();
+      if (product && product.variant_group_id) {
+        const productUpdate = {};
+        if (data.price !== undefined) productUpdate.price = data.price;
+        if (data.salePrice !== undefined) productUpdate.sale_price = data.salePrice;
+        if (data.stockQuantity !== undefined) productUpdate.stock_quantity = data.stockQuantity;
+        if (data.sku !== undefined) productUpdate.sku = data.sku;
+        if (Object.keys(productUpdate).length) {
+          productUpdate.updated_at = new Date();
+          await db('products').where({ id: variant.product_id }).update(productUpdate);
+        }
+      }
+    }
+
     return variant;
   }
 

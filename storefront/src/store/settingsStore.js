@@ -3,12 +3,20 @@ import api from '../services/api';
 
 export const useSettingsStore = create((set) => ({
   callRequestMode: false,
+  whatsappNumber: '',
   loaded: false,
 
   fetchSettings: async () => {
     try {
-      const { data } = await api.get('/call-requests/mode');
-      set({ callRequestMode: data.data.callRequestMode, loaded: true });
+      const [callRes, publicRes] = await Promise.all([
+        api.get('/call-requests/mode').catch(() => null),
+        api.get('/settings/public').catch(() => null),
+      ]);
+      set({
+        callRequestMode: callRes?.data?.data?.callRequestMode || false,
+        whatsappNumber: publicRes?.data?.data?.whatsapp_number || '',
+        loaded: true,
+      });
     } catch {
       set({ loaded: true });
     }

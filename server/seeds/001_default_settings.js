@@ -13,6 +13,7 @@ exports.seed = async function (knex) {
     { key: 'store_email', value: 'info@mystore.com', type: 'string', group: 'store', label: 'Contact Email' },
     { key: 'store_phone', value: '', type: 'string', group: 'store', label: 'Contact Phone' },
     { key: 'store_address', value: '', type: 'string', group: 'store', label: 'Store Address' },
+    { key: 'whatsapp_number', value: '', type: 'string', group: 'store', label: 'WhatsApp Number' },
 
     // Tax
     { key: 'tax_enabled', value: 'true', type: 'boolean', group: 'tax', label: 'Enable Tax' },

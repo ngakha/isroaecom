@@ -19,6 +19,15 @@ class SettingsController {
     }
   }
 
+  async getPublic(req, res, next) {
+    try {
+      const whatsappNumber = await settingsService.get('whatsapp_number');
+      res.json({ data: { whatsapp_number: whatsappNumber || '' } });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async update(req, res, next) {
     try {
       const settings = await settingsService.updateBatch(req.body);

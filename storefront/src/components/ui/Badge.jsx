@@ -4,7 +4,7 @@ const variantStyles = {
   neutral: 'bg-primary-100 text-primary-700',
   success: 'bg-green-50 text-green-700',
   warning: 'bg-amber-50 text-amber-700',
-  error: 'bg-red-50 text-red-700',
+  error: 'bg-red-600 text-white',
   info: 'bg-blue-50 text-blue-700',
   outline: 'bg-transparent border border-primary-300 text-primary-700',
 };
