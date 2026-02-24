@@ -37,7 +37,13 @@ class ProductsService {
     }
 
     if (onSale === 'true') {
-      query = query.whereNotNull('products.sale_price').where('products.sale_price', '>', 0);
+      query = query
+        .whereNotNull('products.sale_price')
+        .where('products.sale_price', '>', 0)
+        .where(function () {
+          this.whereNull('products.sale_end_date')
+            .orWhere('products.sale_end_date', '>', new Date());
+        });
     }
 
     // Count total
@@ -251,6 +257,7 @@ class ProductsService {
         sku,
         price: data.price,
         sale_price: data.salePrice || null,
+        sale_end_date: data.saleEndDate || null,
         cost_price: data.costPrice || null,
         tax_rate: data.taxRate || 0,
         stock_quantity: data.stockQuantity || 0,
@@ -309,6 +316,7 @@ class ProductsService {
             sku,
             price: varDef.price,
             sale_price: varDef.salePrice || null,
+            sale_end_date: varDef.saleEndDate || null,
             cost_price: data.costPrice || null,
             tax_rate: data.taxRate || 0,
             stock_quantity: varDef.stockQuantity || 0,
@@ -392,6 +400,7 @@ class ProductsService {
     if (data.sku !== undefined) updateData.sku = data.sku;
     if (data.price !== undefined) updateData.price = data.price;
     if (data.salePrice !== undefined) updateData.sale_price = data.salePrice;
+    if (data.saleEndDate !== undefined) updateData.sale_end_date = data.saleEndDate || null;
     if (data.costPrice !== undefined) updateData.cost_price = data.costPrice;
     if (data.taxRate !== undefined) updateData.tax_rate = data.taxRate;
     if (data.stockQuantity !== undefined) updateData.stock_quantity = data.stockQuantity;

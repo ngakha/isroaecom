@@ -28,6 +28,7 @@ export default function ProductFormPage() {
     sku: '',
     price: '',
     salePrice: '',
+    saleEndDate: '',
     costPrice: '',
     taxRate: '0',
     stockQuantity: '0',
@@ -55,6 +56,7 @@ export default function ProductFormPage() {
           sku: p.sku || '',
           price: String(p.price || ''),
           salePrice: String(p.sale_price || ''),
+          saleEndDate: p.sale_end_date ? p.sale_end_date.slice(0, 16) : '',
           costPrice: String(p.cost_price || ''),
           taxRate: String(p.tax_rate || '0'),
           stockQuantity: String(p.stock_quantity || '0'),
@@ -374,6 +376,7 @@ export default function ProductFormPage() {
             sku: v.sku || undefined,
             price: parseFloat(v.price),
             salePrice: v.sale_price ? parseFloat(v.sale_price) : undefined,
+            saleEndDate: form.saleEndDate ? new Date(form.saleEndDate).toISOString() : undefined,
             stockQuantity: parseInt(v.stock_quantity) || 0,
           })),
         };
@@ -385,6 +388,7 @@ export default function ProductFormPage() {
           ...form,
           price: parseFloat(form.price),
           salePrice: form.salePrice ? parseFloat(form.salePrice) : undefined,
+          saleEndDate: form.saleEndDate ? new Date(form.saleEndDate).toISOString() : null,
           costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined,
           taxRate: parseFloat(form.taxRate),
           stockQuantity: parseInt(form.stockQuantity),
@@ -522,6 +526,22 @@ export default function ProductFormPage() {
                   <label className="label">Sale Price</label>
                   <input type="number" step="0.01" className="input" value={form.salePrice} onChange={(e) => handleChange('salePrice', e.target.value)} />
                 </div>
+                {form.salePrice && (
+                  <div className="col-span-2">
+                    <label className="label">Sale End Date</label>
+                    <div className="flex items-center gap-2">
+                      <input type="datetime-local" className="input w-64" value={form.saleEndDate} onChange={(e) => handleChange('saleEndDate', e.target.value)} />
+                      {form.saleEndDate && (
+                        <button type="button" onClick={() => handleChange('saleEndDate', '')} className="text-xs text-red-500 hover:underline whitespace-nowrap">
+                          Clear
+                        </button>
+                      )}
+                      {!form.saleEndDate && (
+                        <span className="text-xs text-gray-400">No end date = sale runs indefinitely</span>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className="label">Cost Price</label>
                   <input type="number" step="0.01" className="input" value={form.costPrice} onChange={(e) => handleChange('costPrice', e.target.value)} />

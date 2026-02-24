@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Heart, Truck, Shield, Package, PhoneCall } from 'lucide-react';
 import ProductGallery from '../components/ecommerce/ProductGallery';
 import PriceDisplay from '../components/ecommerce/PriceDisplay';
+import SaleCountdown from '../components/ecommerce/SaleCountdown';
 import QuantitySelector from '../components/ecommerce/QuantitySelector';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -13,6 +14,7 @@ import { ProductCardSkeleton } from '../components/ui/Skeleton';
 import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
 import { useWishlistStore } from '../store/wishlistStore';
+import { isSaleActive } from '../utils/sale';
 import { useSettingsStore } from '../store/settingsStore';
 import CallRequestModal from '../components/ecommerce/CallRequestModal';
 import api from '../services/api';
@@ -82,9 +84,10 @@ export default function ProductPage() {
     );
   }
 
+  const saleActive = isSaleActive(product);
   const activePrice = selectedVariant
     ? { price: selectedVariant.price, salePrice: selectedVariant.sale_price }
-    : { price: product.price, salePrice: product.sale_price };
+    : { price: product.price, salePrice: saleActive ? product.sale_price : null };
 
   const activeStock = selectedVariant
     ? selectedVariant.stock_quantity
@@ -166,6 +169,9 @@ export default function ProductPage() {
               salePrice={activePrice.salePrice}
               size="lg"
             />
+            {saleActive && product.sale_end_date && (
+              <SaleCountdown endDate={product.sale_end_date} size="md" className="mt-2" />
+            )}
           </div>
 
           {/* Stock */}

@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import PriceDisplay from './PriceDisplay';
 import Badge from '../ui/Badge';
+import SaleCountdown from './SaleCountdown';
 import QuickViewModal from './QuickViewModal';
 import { useCartStore } from '../../store/cartStore';
 import { useAuthStore } from '../../store/authStore';
 import { useWishlistStore } from '../../store/wishlistStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { isSaleActive } from '../../utils/sale';
 import CallRequestModal from './CallRequestModal';
 import toast from 'react-hot-toast';
 
@@ -24,7 +26,7 @@ export default function ProductCard({ product, onWishlistChange }) {
   const wishlistRemove = useWishlistStore((s) => s.remove);
 
   const image = product.images?.[0];
-  const hasDiscount = product.sale_price && parseFloat(product.sale_price) < parseFloat(product.price);
+  const hasDiscount = isSaleActive(product);
   const discountPercent = hasDiscount
     ? Math.round(((product.price - product.sale_price) / product.price) * 100)
     : 0;
@@ -131,9 +133,12 @@ export default function ProductCard({ product, onWishlistChange }) {
           </h3>
           <PriceDisplay
             price={product.price}
-            salePrice={product.sale_price}
+            salePrice={hasDiscount ? product.sale_price : null}
             size="sm"
           />
+          {hasDiscount && product.sale_end_date && (
+            <SaleCountdown endDate={product.sale_end_date} size="sm" />
+          )}
         </div>
       </Link>
 

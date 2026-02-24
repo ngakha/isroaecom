@@ -6,6 +6,7 @@ const createProduct = Joi.object({
   sku: Joi.string().allow('', null).max(100).optional(),
   price: Joi.number().min(0).required(),
   salePrice: Joi.number().min(0).optional(),
+  saleEndDate: Joi.date().iso().allow(null).optional(),
   costPrice: Joi.number().min(0).optional(),
   taxRate: Joi.number().min(0).max(100).optional(),
   stockQuantity: Joi.number().integer().min(0).optional(),
@@ -95,6 +96,7 @@ const createExpandedProduct = Joi.object({
     sku: Joi.string().max(100).optional(),
     price: Joi.number().min(0).required(),
     salePrice: Joi.number().min(0).optional(),
+    saleEndDate: Joi.date().iso().allow(null).optional(),
     stockQuantity: Joi.number().integer().min(0).optional(),
   })).min(1).required(),
 });
