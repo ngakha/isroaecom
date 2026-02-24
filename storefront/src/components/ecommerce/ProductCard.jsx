@@ -13,8 +13,10 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { isSaleActive } from '../../utils/sale';
 import CallRequestModal from './CallRequestModal';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 export default function ProductCard({ product, onWishlistChange }) {
+  const { t } = useTranslation();
   const [adding, setAdding] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const [callRequestOpen, setCallRequestOpen] = useState(false);
@@ -40,7 +42,7 @@ export default function ProductCard({ product, onWishlistChange }) {
     setAdding(true);
     try {
       await addItem(product.id);
-      toast.success('Added to cart');
+      toast.success(t('product.addedToCart'));
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -52,20 +54,20 @@ export default function ProductCard({ product, onWishlistChange }) {
     e.preventDefault();
     e.stopPropagation();
     if (!customer) {
-      toast.error('Please sign in to use wishlist');
+      toast.error(t('product.signInForWishlist'));
       return;
     }
     try {
       if (wishListed) {
         await wishlistRemove(product.id);
-        toast.success('Removed from wishlist');
+        toast.success(t('product.removedFromWishlist'));
       } else {
         await wishlistAdd(product.id);
-        toast.success('Added to wishlist');
+        toast.success(t('product.addedToWishlist'));
       }
       onWishlistChange?.();
     } catch {
-      toast.error('Wishlist error');
+      toast.error(t('product.wishlistError'));
     }
   };
 
@@ -92,10 +94,10 @@ export default function ProductCard({ product, onWishlistChange }) {
               <Badge variant="error" size="sm">-{discountPercent}%</Badge>
             )}
             {isOutOfStock && (
-              <Badge variant="neutral" size="sm">Sold Out</Badge>
+              <Badge variant="neutral" size="sm">{t('product.soldOut')}</Badge>
             )}
             {isLowStock && !isOutOfStock && (
-              <Badge variant="warning" size="sm">Low Stock</Badge>
+              <Badge variant="warning" size="sm">{t('product.lowStock')}</Badge>
             )}
           </div>
 
@@ -122,7 +124,7 @@ export default function ProductCard({ product, onWishlistChange }) {
             className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 bg-white text-primary-900 text-xs font-medium px-3 py-1.5 rounded-md shadow-md flex items-center gap-1.5 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all hover:bg-primary-50"
           >
             <Eye size={14} />
-            Quick View
+            {t('product.quickView')}
           </button>
         </div>
 
@@ -149,7 +151,7 @@ export default function ProductCard({ product, onWishlistChange }) {
           className="mt-3 w-full h-9 flex items-center justify-center gap-2 text-sm font-medium rounded-md transition-all bg-green-600 text-white hover:bg-green-700 active:bg-green-800"
         >
           <PhoneCall size={15} />
-          Request a Call
+          {t('product.requestCall')}
         </button>
       ) : (
         <button
@@ -163,13 +165,13 @@ export default function ProductCard({ product, onWishlistChange }) {
           )}
         >
           {adding ? (
-            <span className="animate-pulse">Adding...</span>
+            <span className="animate-pulse">{t('product.adding')}</span>
           ) : isOutOfStock ? (
-            'Out of Stock'
+            t('product.outOfStock')
           ) : (
             <>
               <ShoppingBag size={15} />
-              Add to Cart
+              {t('product.addToCart')}
             </>
           )}
         </button>

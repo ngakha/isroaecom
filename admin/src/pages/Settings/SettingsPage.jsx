@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Save, Lock } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -29,9 +31,9 @@ export default function SettingsPage() {
         }
       }
       await api.put('/settings', flat);
-      toast.success('Settings saved');
+      toast.success(t('settings.saved'));
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Save failed');
+      toast.error(err.response?.data?.error || t('settings.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -46,15 +48,15 @@ export default function SettingsPage() {
 
   const handleChangePassword = async () => {
     if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      toast.error('Fill in all password fields');
+      toast.error(t('settings.fillPasswords'));
       return;
     }
     if (passwordForm.newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters');
+      toast.error(t('settings.passwordMinLength'));
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('settings.passwordsMismatch'));
       return;
     }
 
@@ -64,21 +66,21 @@ export default function SettingsPage() {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
-      toast.success('Password changed successfully');
+      toast.success(t('settings.passwordChanged'));
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Password change failed');
+      toast.error(err.response?.data?.error || t('settings.passwordFailed'));
     } finally {
       setChangingPassword(false);
     }
   };
 
   const tabs = [
-    { key: 'store', label: 'Store' },
-    { key: 'tax', label: 'Tax' },
-    { key: 'orders', label: 'Orders' },
-    { key: 'checkout', label: 'Checkout' },
-    { key: 'security', label: 'Security' },
+    { key: 'store', label: t('settings.store') },
+    { key: 'tax', label: t('settings.tax') },
+    { key: 'orders', label: t('settings.ordersTab') },
+    { key: 'checkout', label: t('settings.checkout') },
+    { key: 'security', label: t('settings.security') },
   ];
 
   if (loading) {
@@ -90,11 +92,11 @@ export default function SettingsPage() {
   return (
     <div className="space-y-4 max-w-3xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
         {activeTab !== 'security' && (
           <button className="btn-primary" onClick={handleSave} disabled={saving}>
             <Save size={16} className="mr-2" />
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? t('common.saving') : t('settings.saveChanges')}
           </button>
         )}
       </div>
@@ -121,11 +123,11 @@ export default function SettingsPage() {
         <div className="card space-y-4">
           <div className="flex items-center gap-2">
             <Lock size={18} />
-            <h3 className="font-semibold">Change Password</h3>
+            <h3 className="font-semibold">{t('settings.changePassword')}</h3>
           </div>
           <div className="max-w-md space-y-4">
             <div>
-              <label className="label">Current Password</label>
+              <label className="label">{t('settings.currentPassword')}</label>
               <input
                 type="password"
                 className="input"
@@ -134,17 +136,17 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="label">New Password</label>
+              <label className="label">{t('settings.newPassword')}</label>
               <input
                 type="password"
                 className="input"
                 value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))}
               />
-              <p className="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
+              <p className="text-xs text-gray-500 mt-1">{t('settings.minChars')}</p>
             </div>
             <div>
-              <label className="label">Confirm New Password</label>
+              <label className="label">{t('settings.confirmPassword')}</label>
               <input
                 type="password"
                 className="input"
@@ -153,7 +155,7 @@ export default function SettingsPage() {
               />
             </div>
             <button onClick={handleChangePassword} disabled={changingPassword} className="btn-primary">
-              {changingPassword ? 'Changing...' : 'Change Password'}
+              {changingPassword ? t('common.saving') : t('settings.changePassword')}
             </button>
           </div>
         </div>
@@ -171,7 +173,7 @@ export default function SettingsPage() {
                     onChange={(e) => updateSetting(activeTab, key, e.target.checked)}
                     className="rounded"
                   />
-                  <span className="text-sm">{value ? 'Enabled' : 'Disabled'}</span>
+                  <span className="text-sm">{value ? t('common.enabled') : t('common.disabled')}</span>
                 </label>
               ) : typeof value === 'number' ? (
                 <input
@@ -192,7 +194,7 @@ export default function SettingsPage() {
           ))}
 
           {Object.keys(currentGroup).length === 0 && (
-            <p className="text-gray-500 text-sm py-4">No settings in this group yet. Run database seeds first.</p>
+            <p className="text-gray-500 text-sm py-4">{t('settings.noSettings')}</p>
           )}
         </div>
       )}

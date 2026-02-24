@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, ShoppingBag, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 
 export default function LiveSearch({ onClose }) {
@@ -10,6 +11,7 @@ export default function LiveSearch({ onClose }) {
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -72,7 +74,7 @@ export default function LiveSearch({ onClose }) {
             type="text"
             value={query}
             onChange={handleChange}
-            placeholder="Search products..."
+            placeholder={t('header.searchProducts')}
             autoFocus
             className="flex-1 text-base outline-none placeholder:text-muted"
           />
@@ -82,7 +84,7 @@ export default function LiveSearch({ onClose }) {
             onClick={onClose}
             className="text-sm text-muted hover:text-primary-900 flex-shrink-0"
           >
-            Cancel
+            {t('search.cancel')}
           </button>
         </form>
 
@@ -92,7 +94,7 @@ export default function LiveSearch({ onClose }) {
             {loading && results.length === 0 ? (
               <div className="flex items-center justify-center py-6 text-muted text-sm">
                 <Loader2 size={16} className="animate-spin mr-2" />
-                Searching...
+                {t('search.searching')}
               </div>
             ) : results.length > 0 ? (
               <div className="space-y-1">
@@ -140,12 +142,12 @@ export default function LiveSearch({ onClose }) {
                   onClick={handleSubmit}
                   className="w-full text-center text-sm font-medium text-primary-600 hover:text-primary-900 py-2 transition-colors"
                 >
-                  View all results for "{query}"
+                  {t('search.viewAll', { query })}
                 </button>
               </div>
             ) : (
               <p className="text-sm text-muted text-center py-6">
-                No products found for "{query}"
+                {t('search.noResults', { query })}
               </p>
             )}
           </div>

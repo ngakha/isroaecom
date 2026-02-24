@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Trash2, Edit } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { usePaginatedApi } from '../../hooks/useApi';
 import DataTable from '../../components/ui/DataTable';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -9,6 +10,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function ProductsPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const canDelete = user?.role === 'super_admin' || user?.role === 'shop_manager';
   const [search, setSearch] = useState('');
@@ -20,20 +22,20 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    if (!confirm(t('products.deleteConfirm'))) return;
     try {
       await api.delete(`/products/${id}`);
-      toast.success('Product deleted');
+      toast.success(t('products.deleted'));
       refetch();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Delete failed');
+      toast.error(err.response?.data?.error || t('products.deleteFailed'));
     }
   };
 
   const columns = [
     {
       key: 'name',
-      label: 'Product',
+      label: t('products.product'),
       render: (row) => (
         <div className="flex items-center gap-3">
           {row.images?.[0] ? (
@@ -50,7 +52,7 @@ export default function ProductsPage() {
     },
     {
       key: 'price',
-      label: 'Price',
+      label: t('products.price'),
       render: (row) => (
         <div>
           {row.sale_price ? (
@@ -66,7 +68,7 @@ export default function ProductsPage() {
     },
     {
       key: 'stock_quantity',
-      label: 'Stock',
+      label: t('products.stock'),
       render: (row) => (
         <span className={row.stock_quantity <= row.low_stock_threshold ? 'text-red-600 font-medium' : ''}>
           {row.stock_quantity}
@@ -75,7 +77,7 @@ export default function ProductsPage() {
     },
     {
       key: 'status',
-      label: 'Status',
+      label: t('common.status'),
       render: (row) => <StatusBadge status={row.status} />,
     },
     {
@@ -99,9 +101,9 @@ export default function ProductsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Products</h1>
+        <h1 className="text-2xl font-bold">{t('products.title')}</h1>
         <Link to="/products/new" className="btn-primary">
-          <Plus size={16} className="mr-2" /> Add Product
+          <Plus size={16} className="mr-2" /> {t('products.addProduct')}
         </Link>
       </div>
 
@@ -113,7 +115,7 @@ export default function ProductsPage() {
             <input
               type="text"
               className="input pl-9"
-              placeholder="Search products..."
+              placeholder={t('products.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -125,10 +127,10 @@ export default function ProductsPage() {
           className="input w-auto"
           onChange={(e) => updateFilters({ status: e.target.value || undefined })}
         >
-          <option value="">All statuses</option>
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-          <option value="archived">Archived</option>
+          <option value="">{t('products.allStatuses')}</option>
+          <option value="draft">{t('products.draft')}</option>
+          <option value="published">{t('products.published')}</option>
+          <option value="archived">{t('products.archived')}</option>
         </select>
       </div>
 
@@ -138,7 +140,7 @@ export default function ProductsPage() {
         pagination={pagination}
         onPageChange={setPage}
         loading={loading}
-        emptyMessage="No products found"
+        emptyMessage={t('products.noProducts')}
       />
     </div>
   );

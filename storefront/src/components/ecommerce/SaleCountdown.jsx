@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 export default function SaleCountdown({ endDate, size = 'md', className }) {
+  const { t } = useTranslation();
   const [timeLeft, setTimeLeft] = useState(null);
 
   useEffect(() => {
@@ -26,11 +28,14 @@ export default function SaleCountdown({ endDate, size = 'md', className }) {
 
   if (!timeLeft) return null;
 
-  const text = timeLeft.days > 0
-    ? `${timeLeft.days} დღე ${timeLeft.hours}სთ ${timeLeft.minutes}წთ`
+  const d = t('sale.days');
+  const h = t('sale.hours');
+  const m = t('sale.minutes');
+  const timeStr = timeLeft.days > 0
+    ? `${timeLeft.days} ${d} ${timeLeft.hours}${h} ${timeLeft.minutes}${m}`
     : timeLeft.hours > 0
-      ? `${timeLeft.hours}სთ ${timeLeft.minutes}წთ`
-      : `${timeLeft.minutes}წთ`;
+      ? `${timeLeft.hours}${h} ${timeLeft.minutes}${m}`
+      : `${timeLeft.minutes}${m}`;
 
   return (
     <span className={clsx(
@@ -42,7 +47,7 @@ export default function SaleCountdown({ endDate, size = 'md', className }) {
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className={size === 'sm' ? 'w-2.5 h-2.5' : 'w-3 h-3'}>
         <path fillRule="evenodd" d="M1 8a7 7 0 1 1 14 0A7 7 0 0 1 1 8Zm7.75-4.25a.75.75 0 0 0-1.5 0V8c0 .414.336.75.75.75h3.25a.75.75 0 0 0 0-1.5h-2.5v-3.5Z" clipRule="evenodd" />
       </svg>
-      {text}
+      {t('sale.endsIn', { time: timeStr })}
     </span>
   );
 }

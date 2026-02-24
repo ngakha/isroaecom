@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 import { usePaginatedApi } from '../../hooks/useApi';
 import { useAuthStore } from '../../store/authStore';
@@ -6,6 +7,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function MediaPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const canDelete = user?.role === 'super_admin' || user?.role === 'shop_manager';
   const { data: files, loading, refetch } = usePaginatedApi('/media');
@@ -26,10 +28,10 @@ export default function MediaPage() {
       await api.post('/media', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      toast.success('Files uploaded');
+      toast.success(t('media.filesUploaded'));
       refetch();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Upload failed');
+      toast.error(err.response?.data?.error || t('media.uploadFailed'));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -37,13 +39,13 @@ export default function MediaPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this file?')) return;
+    if (!confirm(t('media.confirmDelete'))) return;
     try {
       await api.delete(`/media/${id}`);
-      toast.success('File deleted');
+      toast.success(t('media.fileDeleted'));
       refetch();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Delete failed');
+      toast.error(err.response?.data?.error || t('media.deleteFailed'));
     }
   };
 
@@ -56,7 +58,7 @@ export default function MediaPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Media Library</h1>
+        <h1 className="text-2xl font-bold">{t('media.title')}</h1>
         <div>
           <input
             ref={fileInputRef}
@@ -72,7 +74,7 @@ export default function MediaPage() {
             disabled={uploading}
           >
             <Upload size={16} className="mr-2" />
-            {uploading ? 'Uploading...' : 'Upload Files'}
+            {uploading ? t('common.uploading') : t('common.uploadFiles')}
           </button>
         </div>
       </div>
@@ -86,9 +88,9 @@ export default function MediaPage() {
       ) : files.length === 0 ? (
         <div className="card text-center py-16">
           <ImageIcon size={48} className="mx-auto text-gray-300 mb-4" />
-          <p className="text-gray-500">No files uploaded yet</p>
+          <p className="text-gray-500">{t('media.noFiles')}</p>
           <button className="btn-primary mt-4" onClick={() => fileInputRef.current?.click()}>
-            Upload your first file
+            {t('media.uploadFirst')}
           </button>
         </div>
       ) : (

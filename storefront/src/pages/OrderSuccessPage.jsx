@@ -4,10 +4,12 @@ import { CheckCircle, Package, ArrowRight } from 'lucide-react';
 import Button from '../components/ui/Button';
 import OrderStatusBadge from '../components/ecommerce/OrderStatusBadge';
 import api from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 export default function OrderSuccessPage() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (id) {
@@ -24,28 +26,28 @@ export default function OrderSuccessPage() {
           <CheckCircle size={32} className="text-success" />
         </div>
 
-        <h1 className="text-2xl font-semibold text-primary-900 mb-2">Order Placed Successfully!</h1>
+        <h1 className="text-2xl font-semibold text-primary-900 mb-2">{t('orderSuccess.title')}</h1>
         <p className="text-sm text-muted mb-6">
-          Thank you for your purchase. You will receive a confirmation email shortly.
+          {t('orderSuccess.subtitle')}
         </p>
 
         {order && (
           <div className="border border-border rounded-lg p-6 text-left mb-8">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs text-muted">Order Number</p>
+                <p className="text-xs text-muted">{t('orderSuccess.orderNumber')}</p>
                 <p className="text-sm font-semibold text-primary-900">{order.order_number}</p>
               </div>
               <OrderStatusBadge status={order.status} />
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted">Total</span>
+              <span className="text-muted">{t('orderSuccess.total')}</span>
               <span className="font-semibold text-primary-900">
                 {parseFloat(order.total).toFixed(2)} {order.currency || 'GEL'}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm mt-1">
-              <span className="text-muted">Payment</span>
+              <span className="text-muted">{t('orderSuccess.payment')}</span>
               <span className="text-primary-600">{order.payment_method || 'N/A'}</span>
             </div>
           </div>
@@ -55,13 +57,13 @@ export default function OrderSuccessPage() {
           {order && (
             <Link to={`/account/order/${order.id}`}>
               <Button variant="secondary" icon={<Package size={16} />}>
-                View Order
+                {t('orderSuccess.viewOrder')}
               </Button>
             </Link>
           )}
           <Link to="/shop">
             <Button icon={<ArrowRight size={16} />} iconPosition="right">
-              Continue Shopping
+              {t('orderSuccess.continueShopping')}
             </Button>
           </Link>
         </div>

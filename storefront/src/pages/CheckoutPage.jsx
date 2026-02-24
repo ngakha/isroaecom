@@ -11,12 +11,7 @@ import { useAuthStore } from '../store/authStore';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
-
-const STEPS = [
-  { id: 'info', label: 'Information' },
-  { id: 'shipping', label: 'Shipping' },
-  { id: 'payment', label: 'Payment' },
-];
+import { useTranslation } from 'react-i18next';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -25,6 +20,13 @@ export default function CheckoutPage() {
   const fetchCart = useCartStore((s) => s.fetchCart);
   const clearCart = useCartStore((s) => s.clearCart);
   const customer = useAuthStore((s) => s.customer);
+  const { t } = useTranslation();
+
+  const STEPS = [
+    { id: 'info', label: t('checkout.information') },
+    { id: 'shipping', label: t('checkout.shipping') },
+    { id: 'payment', label: t('checkout.payment') },
+  ];
 
   const couponFromCart = location.state?.coupon;
 
@@ -132,14 +134,14 @@ export default function CheckoutPage() {
 
   const goToStep = (newStep) => {
     if (newStep === 'shipping' && !shippingAddress) {
-      toast.error('Please enter a shipping address');
+      toast.error(t('checkout.enterShippingAddress'));
       return;
     }
     if (newStep === 'shipping') {
       fetchShippingRates(shippingAddress);
     }
     if (newStep === 'payment' && !selectedRate) {
-      toast.error('Please select a shipping method');
+      toast.error(t('checkout.selectShippingMethod'));
       return;
     }
     setStep(newStep);
@@ -147,12 +149,12 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (!info.email || !info.firstName || !info.lastName) {
-      toast.error('Please fill in your contact information');
+      toast.error(t('checkout.fillContactInfo'));
       setStep('info');
       return;
     }
     if (!shippingAddress) {
-      toast.error('Please enter a shipping address');
+      toast.error(t('checkout.enterShippingAddress'));
       setStep('info');
       return;
     }
@@ -232,9 +234,9 @@ export default function CheckoutPage() {
   if (items.length === 0 && !submitting) {
     return (
       <div className="max-w-container mx-auto px-4 lg:px-6 py-16 text-center">
-        <h1 className="text-2xl font-semibold text-primary-900 mb-2">Your cart is empty</h1>
+        <h1 className="text-2xl font-semibold text-primary-900 mb-2">{t('checkout.emptyCart')}</h1>
         <Link to="/shop" className="text-sm text-primary-900 font-medium hover:underline">
-          Continue Shopping
+          {t('cart.continueShopping')}
         </Link>
       </div>
     );
@@ -283,18 +285,18 @@ export default function CheckoutPage() {
           {step === 'info' && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-lg font-semibold text-primary-900 mb-4">Contact Information</h2>
+                <h2 className="text-lg font-semibold text-primary-900 mb-4">{t('checkout.contactInfo')}</h2>
                 {!customer && (
                   <p className="text-sm text-muted mb-4">
-                    Already have an account?{' '}
+                    {t('checkout.alreadyHaveAccount')}{' '}
                     <Link to="/login" state={{ from: '/checkout' }} className="text-primary-900 font-medium hover:underline">
-                      Sign In
+                      {t('checkout.signIn')}
                     </Link>
                   </p>
                 )}
                 <div className="space-y-4">
                   <Input
-                    label="Email"
+                    label={t('checkout.email')}
                     type="email"
                     value={info.email}
                     onChange={(e) => setInfo((prev) => ({ ...prev, email: e.target.value }))}
@@ -302,13 +304,13 @@ export default function CheckoutPage() {
                   />
                   <div className="grid grid-cols-2 gap-4">
                     <Input
-                      label="First Name"
+                      label={t('checkout.firstName')}
                       value={info.firstName}
                       onChange={(e) => setInfo((prev) => ({ ...prev, firstName: e.target.value }))}
                       required
                     />
                     <Input
-                      label="Last Name"
+                      label={t('checkout.lastName')}
                       value={info.lastName}
                       onChange={(e) => setInfo((prev) => ({ ...prev, lastName: e.target.value }))}
                       required
@@ -318,7 +320,7 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <h2 className="text-lg font-semibold text-primary-900 mb-4">Shipping Address</h2>
+                <h2 className="text-lg font-semibold text-primary-900 mb-4">{t('checkout.shippingAddress')}</h2>
                 {savedAddresses.length > 0 && (
                   <div className="space-y-3 mb-4">
                     {savedAddresses.map((addr) => (
@@ -334,7 +336,7 @@ export default function CheckoutPage() {
                       onClick={() => setShowNewAddress(!showNewAddress)}
                       className="text-sm text-primary-900 font-medium hover:underline"
                     >
-                      {showNewAddress ? 'Cancel' : '+ Add New Address'}
+                      {showNewAddress ? t('checkout.cancel') : t('checkout.addNewAddress')}
                     </button>
                   </div>
                 )}
@@ -349,7 +351,7 @@ export default function CheckoutPage() {
                 icon={<ChevronRight size={18} />}
                 iconPosition="right"
               >
-                Continue to Shipping
+                {t('checkout.continueToShipping')}
               </Button>
             </div>
           )}
@@ -357,7 +359,7 @@ export default function CheckoutPage() {
           {/* Step 2: Shipping */}
           {step === 'shipping' && (
             <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-primary-900 mb-4">Shipping Method</h2>
+              <h2 className="text-lg font-semibold text-primary-900 mb-4">{t('checkout.shippingMethod')}</h2>
 
               {ratesLoading ? (
                 <div className="space-y-3">
@@ -369,7 +371,7 @@ export default function CheckoutPage() {
                   ))}
                 </div>
               ) : shippingRates.length === 0 ? (
-                <p className="text-sm text-muted">No shipping methods available for your address.</p>
+                <p className="text-sm text-muted">{t('checkout.noShippingMethods')}</p>
               ) : (
                 <div className="space-y-3">
                   {shippingRates.map((rate) => (
@@ -387,11 +389,11 @@ export default function CheckoutPage() {
                         <p className="text-sm font-medium text-primary-900">{rate.name}</p>
                         <p className="text-xs text-muted mt-0.5">{rate.description}</p>
                         {rate.estimatedDays && (
-                          <p className="text-xs text-muted">{rate.estimatedDays} business days</p>
+                          <p className="text-xs text-muted">{rate.estimatedDays} {t('checkout.businessDays')}</p>
                         )}
                       </div>
                       <span className="text-sm font-semibold text-primary-900">
-                        {parseFloat(rate.price) === 0 ? 'Free' : `${parseFloat(rate.price).toFixed(2)} GEL`}
+                        {parseFloat(rate.price) === 0 ? t('checkout.free') : `${parseFloat(rate.price).toFixed(2)} GEL`}
                       </span>
                     </button>
                   ))}
@@ -400,7 +402,7 @@ export default function CheckoutPage() {
 
               <div className="flex items-center gap-3">
                 <Button variant="secondary" onClick={() => setStep('info')}>
-                  Back
+                  {t('checkout.back')}
                 </Button>
                 <Button
                   size="lg"
@@ -408,7 +410,7 @@ export default function CheckoutPage() {
                   icon={<ChevronRight size={18} />}
                   iconPosition="right"
                 >
-                  Continue to Payment
+                  {t('checkout.continueToPayment')}
                 </Button>
               </div>
             </div>
@@ -417,7 +419,7 @@ export default function CheckoutPage() {
           {/* Step 3: Payment */}
           {step === 'payment' && (
             <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-primary-900 mb-4">Payment Method</h2>
+              <h2 className="text-lg font-semibold text-primary-900 mb-4">{t('checkout.paymentMethod')}</h2>
 
               <div className="space-y-3">
                 {paymentMethods.map((method) => (
@@ -443,22 +445,22 @@ export default function CheckoutPage() {
               </div>
 
               <Input
-                label="Order Notes (optional)"
+                label={t('checkout.orderNotes')}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Special instructions for your order..."
+                placeholder={t('checkout.orderNotesPlaceholder')}
               />
 
               <div className="flex items-center gap-3">
                 <Button variant="secondary" onClick={() => setStep('shipping')}>
-                  Back
+                  {t('checkout.back')}
                 </Button>
                 <Button
                   size="lg"
                   onClick={handlePlaceOrder}
                   loading={submitting}
                 >
-                  Place Order
+                  {t('checkout.placeOrder')}
                 </Button>
               </div>
             </div>
@@ -469,7 +471,7 @@ export default function CheckoutPage() {
         <div className="lg:col-span-1">
           <div className="sticky top-20 bg-surface rounded-lg p-6">
             <h3 className="text-lg font-semibold text-primary-900 mb-4">
-              Order Summary ({items.length})
+              {t('checkout.orderSummary', { count: items.length })}
             </h3>
 
             {/* Items */}
@@ -506,24 +508,24 @@ export default function CheckoutPage() {
 
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-primary-600">Subtotal</span>
+                <span className="text-primary-600">{t('cart.subtotal')}</span>
                 <span className="text-primary-900">{subtotal.toFixed(2)} GEL</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex items-center justify-between text-success">
-                  <span>Discount</span>
+                  <span>{t('orderDetail.discount')}</span>
                   <span>-{discountAmount.toFixed(2)} GEL</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-primary-600">Shipping</span>
+                <span className="text-primary-600">{t('checkout.shipping')}</span>
                 <span className="text-primary-900">
-                  {selectedRate ? (parseFloat(selectedRate.price) === 0 ? 'Free' : `${parseFloat(selectedRate.price).toFixed(2)} GEL`) : '—'}
+                  {selectedRate ? (parseFloat(selectedRate.price) === 0 ? t('checkout.free') : `${parseFloat(selectedRate.price).toFixed(2)} GEL`) : '—'}
                 </span>
               </div>
               <hr className="border-border" />
               <div className="flex items-center justify-between text-lg">
-                <span className="font-semibold text-primary-900">Total</span>
+                <span className="font-semibold text-primary-900">{t('cart.total')}</span>
                 <span className="font-semibold text-primary-900">{total.toFixed(2)} GEL</span>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -16,6 +17,7 @@ const STATUS_TRANSITIONS = {
 };
 
 export default function OrderDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { data, loading, refetch } = useApi(`/orders/${id}`);
@@ -25,14 +27,14 @@ export default function OrderDetailPage() {
   const allowedTransitions = order ? STATUS_TRANSITIONS[order.status] || [] : [];
 
   const handleStatusChange = async (newStatus) => {
-    const note = prompt('Add a note (optional):');
+    const note = prompt(t('orderDetail.addNote'));
     setUpdating(true);
     try {
       await api.patch(`/orders/${id}/status`, { status: newStatus, note });
-      toast.success(`Status updated to ${newStatus}`);
+      toast.success(t('orderDetail.statusUpdated', { status: newStatus }));
       refetch();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Update failed');
+      toast.error(err.response?.data?.error || t('orderDetail.updateFailed'));
     } finally {
       setUpdating(false);
     }
@@ -43,7 +45,7 @@ export default function OrderDetailPage() {
   }
 
   if (!order) {
-    return <div className="text-center py-12 text-gray-500">Order not found</div>;
+    return <div className="text-center py-12 text-gray-500">{t('orderDetail.notFound')}</div>;
   }
 
   return (
@@ -65,7 +67,7 @@ export default function OrderDetailPage() {
       {/* Status Actions */}
       {allowedTransitions.length > 0 && (
         <div className="card flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-600">Update Status:</span>
+          <span className="text-sm font-medium text-gray-600">{t('orderDetail.updateStatus')}:</span>
           {allowedTransitions.map((status) => (
             <button
               key={status}
@@ -74,7 +76,7 @@ export default function OrderDetailPage() {
               className={`btn text-xs capitalize ${status === 'cancelled' ? 'btn-danger' : 'btn-primary'}`}
             >
               <CheckCircle size={14} className="mr-1" />
-              {status.replace(/_/g, ' ')}
+              {t(`status.${status}`)}
             </button>
           ))}
         </div>
@@ -83,14 +85,14 @@ export default function OrderDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Order Items */}
         <div className="lg:col-span-2 card">
-          <h3 className="font-semibold mb-4">Items</h3>
+          <h3 className="font-semibold mb-4">{t('orderDetail.items')}</h3>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2">Product</th>
-                <th className="text-center py-2">Qty</th>
-                <th className="text-right py-2">Price</th>
-                <th className="text-right py-2">Total</th>
+                <th className="text-left py-2">{t('orderDetail.product')}</th>
+                <th className="text-center py-2">{t('orderDetail.qty')}</th>
+                <th className="text-right py-2">{t('orderDetail.price')}</th>
+                <th className="text-right py-2">{t('orderDetail.total')}</th>
               </tr>
             </thead>
             <tbody>
@@ -107,13 +109,13 @@ export default function OrderDetailPage() {
               ))}
             </tbody>
             <tfoot className="border-t">
-              <tr><td colSpan="3" className="py-1 text-right text-gray-600">Subtotal</td><td className="py-1 text-right">{order.subtotal}</td></tr>
-              <tr><td colSpan="3" className="py-1 text-right text-gray-600">Shipping</td><td className="py-1 text-right">{order.shipping_amount}</td></tr>
-              <tr><td colSpan="3" className="py-1 text-right text-gray-600">Tax</td><td className="py-1 text-right">{order.tax_amount}</td></tr>
+              <tr><td colSpan="3" className="py-1 text-right text-gray-600">{t('orderDetail.subtotal')}</td><td className="py-1 text-right">{order.subtotal}</td></tr>
+              <tr><td colSpan="3" className="py-1 text-right text-gray-600">{t('orderDetail.shipping')}</td><td className="py-1 text-right">{order.shipping_amount}</td></tr>
+              <tr><td colSpan="3" className="py-1 text-right text-gray-600">{t('orderDetail.tax')}</td><td className="py-1 text-right">{order.tax_amount}</td></tr>
               {parseFloat(order.discount_amount) > 0 && (
-                <tr><td colSpan="3" className="py-1 text-right text-gray-600">Discount</td><td className="py-1 text-right text-red-600">-{order.discount_amount}</td></tr>
+                <tr><td colSpan="3" className="py-1 text-right text-gray-600">{t('orderDetail.discount')}</td><td className="py-1 text-right text-red-600">-{order.discount_amount}</td></tr>
               )}
-              <tr className="border-t"><td colSpan="3" className="py-2 text-right font-bold">Total</td><td className="py-2 text-right font-bold text-lg">{order.total} {order.currency}</td></tr>
+              <tr className="border-t"><td colSpan="3" className="py-2 text-right font-bold">{t('orderDetail.total')}</td><td className="py-2 text-right font-bold text-lg">{order.total} {order.currency}</td></tr>
             </tfoot>
           </table>
         </div>
@@ -122,7 +124,7 @@ export default function OrderDetailPage() {
         <div className="space-y-4">
           {/* Customer */}
           <div className="card">
-            <h3 className="font-semibold mb-2">Customer</h3>
+            <h3 className="font-semibold mb-2">{t('orderDetail.customerLabel')}</h3>
             <p className="text-sm">{order.customer_name}</p>
             <p className="text-sm text-gray-500">{order.customer_email}</p>
           </div>
@@ -130,7 +132,7 @@ export default function OrderDetailPage() {
           {/* Shipping Address */}
           {order.shippingAddress && (
             <div className="card">
-              <h3 className="font-semibold mb-2">Shipping Address</h3>
+              <h3 className="font-semibold mb-2">{t('orderDetail.shippingAddress')}</h3>
               <p className="text-sm">{order.shippingAddress.first_name} {order.shippingAddress.last_name}</p>
               <p className="text-sm text-gray-600">{order.shippingAddress.address_line1}</p>
               {order.shippingAddress.address_line2 && <p className="text-sm text-gray-600">{order.shippingAddress.address_line2}</p>}
@@ -140,13 +142,13 @@ export default function OrderDetailPage() {
 
           {/* Status History */}
           <div className="card">
-            <h3 className="font-semibold mb-3">History</h3>
+            <h3 className="font-semibold mb-3">{t('orderDetail.history')}</h3>
             <div className="space-y-3">
               {order.history?.map((entry) => (
                 <div key={entry.id} className="flex gap-3 text-sm">
                   <div className="w-2 h-2 mt-1.5 rounded-full bg-primary-500 shrink-0" />
                   <div>
-                    <p className="font-medium capitalize">{entry.status.replace(/_/g, ' ')}</p>
+                    <p className="font-medium capitalize">{t(`status.${entry.status}`)}</p>
                     {entry.note && <p className="text-gray-500">{entry.note}</p>}
                     <p className="text-xs text-gray-400">{new Date(entry.created_at).toLocaleString()}</p>
                   </div>

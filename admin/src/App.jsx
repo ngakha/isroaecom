@@ -1,3 +1,4 @@
+import './i18n';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import AdminLayout from './components/AdminLayout';

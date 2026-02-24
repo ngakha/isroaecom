@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
+import { useTranslation } from 'react-i18next';
 
 export default function AddressForm({ address, onSubmit, onCancel, loading }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     label: address?.label || 'Home',
     firstName: address?.first_name || '',
@@ -30,13 +32,13 @@ export default function AddressForm({ address, onSubmit, onCancel, loading }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="First Name"
+          label={t('address.firstName')}
           value={form.firstName}
           onChange={handleChange('firstName')}
           required
         />
         <Input
-          label="Last Name"
+          label={t('address.lastName')}
           value={form.lastName}
           onChange={handleChange('lastName')}
           required
@@ -44,27 +46,27 @@ export default function AddressForm({ address, onSubmit, onCancel, loading }) {
       </div>
 
       <Input
-        label="Address Line 1"
+        label={t('address.addressLine1')}
         value={form.addressLine1}
         onChange={handleChange('addressLine1')}
         required
       />
       <Input
-        label="Address Line 2"
+        label={t('address.addressLine2')}
         value={form.addressLine2}
         onChange={handleChange('addressLine2')}
-        placeholder="Apartment, suite, etc. (optional)"
+        placeholder={t('address.addressLine2Hint')}
       />
 
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="City"
+          label={t('address.city')}
           value={form.city}
           onChange={handleChange('city')}
           required
         />
         <Input
-          label="State / Region"
+          label={t('address.state')}
           value={form.state}
           onChange={handleChange('state')}
         />
@@ -72,12 +74,12 @@ export default function AddressForm({ address, onSubmit, onCancel, loading }) {
 
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="Postal Code"
+          label={t('address.postalCode')}
           value={form.postalCode}
           onChange={handleChange('postalCode')}
         />
         <Input
-          label="Country"
+          label={t('address.country')}
           value={form.country}
           onChange={handleChange('country')}
           required
@@ -85,7 +87,7 @@ export default function AddressForm({ address, onSubmit, onCancel, loading }) {
       </div>
 
       <Input
-        label="Phone"
+        label={t('address.phone')}
         type="tel"
         value={form.phone}
         onChange={handleChange('phone')}
@@ -93,10 +95,10 @@ export default function AddressForm({ address, onSubmit, onCancel, loading }) {
 
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="Label"
+          label={t('address.label')}
           value={form.label}
           onChange={handleChange('label')}
-          placeholder="Home, Work, etc."
+          placeholder={t('address.labelHint')}
         />
         <div className="flex items-end pb-1">
           <label className="flex items-center gap-2 cursor-pointer">
@@ -106,18 +108,18 @@ export default function AddressForm({ address, onSubmit, onCancel, loading }) {
               onChange={(e) => setForm((prev) => ({ ...prev, isDefault: e.target.checked }))}
               className="w-4 h-4 rounded border-primary-300 text-primary-900 focus:ring-primary-900"
             />
-            <span className="text-sm text-primary-700">Set as default</span>
+            <span className="text-sm text-primary-700">{t('address.setAsDefault')}</span>
           </label>
         </div>
       </div>
 
       <div className="flex items-center gap-3 pt-2">
         <Button type="submit" loading={loading}>
-          {address ? 'Update Address' : 'Add Address'}
+          {address ? t('address.updateAddress') : t('address.addAddress')}
         </Button>
         {onCancel && (
           <Button type="button" variant="secondary" onClick={onCancel}>
-            Cancel
+            {t('address.cancel')}
           </Button>
         )}
       </div>

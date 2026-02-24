@@ -1,17 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PhoneCall, Search, Trash2, Clock, CheckCircle, XCircle, Phone } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/authStore';
 
-const STATUS_OPTIONS = [
-  { value: 'new', label: 'New', color: 'bg-blue-100 text-blue-700' },
-  { value: 'contacted', label: 'Contacted', color: 'bg-yellow-100 text-yellow-700' },
-  { value: 'completed', label: 'Completed', color: 'bg-green-100 text-green-700' },
-  { value: 'cancelled', label: 'Cancelled', color: 'bg-gray-100 text-gray-600' },
-];
-
 export default function CallRequestsPage() {
+  const { t } = useTranslation();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 0 });
@@ -19,6 +14,13 @@ export default function CallRequestsPage() {
   const [search, setSearch] = useState('');
   const [stats, setStats] = useState({});
   const user = useAuthStore((s) => s.user);
+
+  const STATUS_OPTIONS = [
+    { value: 'new', label: t('callRequests.new'), color: 'bg-blue-100 text-blue-700' },
+    { value: 'contacted', label: t('callRequests.contacted'), color: 'bg-yellow-100 text-yellow-700' },
+    { value: 'completed', label: t('callRequests.completed'), color: 'bg-green-100 text-green-700' },
+    { value: 'cancelled', label: t('callRequests.cancelled'), color: 'bg-gray-100 text-gray-600' },
+  ];
 
   const loadData = async (page = 1) => {
     setLoading(true);
@@ -36,7 +38,7 @@ export default function CallRequestsPage() {
       setPagination(listRes.data.pagination || {});
       setStats(statsRes.data.data || {});
     } catch (err) {
-      toast.error('Failed to load call requests');
+      toast.error(t('callRequests.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -54,21 +56,21 @@ export default function CallRequestsPage() {
   const handleStatusChange = async (id, newStatus) => {
     try {
       await api.patch(`/call-requests/${id}/status`, { status: newStatus });
-      toast.success('Status updated');
+      toast.success(t('callRequests.statusUpdated'));
       loadData(pagination.page);
     } catch (err) {
-      toast.error('Failed to update status');
+      toast.error(t('callRequests.statusFailed'));
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this call request?')) return;
+    if (!confirm(t('callRequests.deleteConfirm'))) return;
     try {
       await api.delete(`/call-requests/${id}`);
-      toast.success('Request deleted');
+      toast.success(t('callRequests.deleted'));
       loadData(pagination.page);
     } catch (err) {
-      toast.error('Failed to delete');
+      toast.error(t('callRequests.deleteFailed'));
     }
   };
 
@@ -88,10 +90,10 @@ export default function CallRequestsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">Call Requests</h1>
+          <h1 className="text-2xl font-bold">{t('callRequests.title')}</h1>
           {totalNew > 0 && (
             <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-              {totalNew} new
+              {t('callRequests.newCount', { count: totalNew })}
             </span>
           )}
         </div>
@@ -122,7 +124,7 @@ export default function CallRequestsPage() {
             className={`px-3 py-1.5 text-xs rounded-md transition-colors ${!statusFilter ? 'bg-white font-medium shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
             onClick={() => setStatusFilter('')}
           >
-            All
+            {t('common.all')}
           </button>
           {STATUS_OPTIONS.map((s) => (
             <button
@@ -139,33 +141,33 @@ export default function CallRequestsPage() {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               className="input pl-9 w-60"
-              placeholder="Search name or phone..."
+              placeholder={t('callRequests.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <button type="submit" className="btn-secondary text-sm">Search</button>
+          <button type="submit" className="btn-secondary text-sm">{t('common.search')}</button>
         </form>
       </div>
 
       {/* Table */}
       <div className="card overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading...</div>
+          <div className="p-8 text-center text-gray-500">{t('common.loading')}</div>
         ) : requests.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">No call requests found</div>
+          <div className="p-8 text-center text-gray-500">{t('callRequests.noRequests')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-left">
                 <tr>
-                  <th className="px-4 py-3 font-medium text-gray-600">Name</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">Phone</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">Product</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">Message</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">Status</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">Date</th>
-                  <th className="px-4 py-3 font-medium text-gray-600 w-20">Actions</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">{t('common.name')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">{t('common.phone')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">{t('callRequests.product')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">{t('callRequests.message')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">{t('common.status')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">{t('common.date')}</th>
+                  <th className="px-4 py-3 font-medium text-gray-600 w-20">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -208,7 +210,7 @@ export default function CallRequestsPage() {
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-gray-600">
           <span>
-            Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+            {t('common.showing', { from: (pagination.page - 1) * pagination.limit + 1, to: Math.min(pagination.page * pagination.limit, pagination.total), total: pagination.total })}
           </span>
           <div className="flex gap-1">
             <button
@@ -216,14 +218,14 @@ export default function CallRequestsPage() {
               onClick={() => loadData(pagination.page - 1)}
               disabled={pagination.page <= 1}
             >
-              Prev
+              {t('common.prev')}
             </button>
             <button
               className="px-3 py-1.5 border rounded hover:bg-gray-50 disabled:opacity-50"
               onClick={() => loadData(pagination.page + 1)}
               disabled={pagination.page >= pagination.totalPages}
             >
-              Next
+              {t('common.next')}
             </button>
           </div>
         </div>

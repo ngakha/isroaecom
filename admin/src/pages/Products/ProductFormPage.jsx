@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Upload, X, Loader2, Plus, Trash2, GripVertical, Pencil } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function ProductFormPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
@@ -154,9 +156,9 @@ export default function ProductFormPage() {
       } else {
         setPendingMedia((prev) => [...prev, ...mediaItems]);
       }
-      toast.success(`${mediaItems.length} photo(s) uploaded`);
+      toast.success(t('productForm.photosUploaded', { count: mediaItems.length }));
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Upload failed');
+      toast.error(err.response?.data?.error || t('productForm.uploadFailed'));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -169,7 +171,7 @@ export default function ProductFormPage() {
         await api.delete(`/products/${id}/images/${imageId}`);
         setImages((prev) => prev.filter((img) => img.id !== imageId));
       } catch {
-        toast.error('Failed to remove image');
+        toast.error(t('productForm.imageRemoveFailed'));
       }
     } else {
       setPendingMedia((prev) => prev.filter((m) => m.id !== imageId));
@@ -191,7 +193,7 @@ export default function ProductFormPage() {
           imageIds: currentImages.map((img) => img.id),
         });
       } catch {
-        toast.error('Failed to reorder images');
+        toast.error(t('productForm.reorderFailed'));
       }
     } else {
       setPendingMedia(currentImages);
@@ -207,7 +209,7 @@ export default function ProductFormPage() {
 
   const handleSaveVariant = async () => {
     if (!variantForm.name || !variantForm.price) {
-      toast.error('Variant name and price are required');
+      toast.error(t('productForm.variantRequired'));
       return;
     }
 
@@ -225,17 +227,17 @@ export default function ProductFormPage() {
         if (editingVariant) {
           const res = await api.put(`/products/${id}/variants/${editingVariant}`, payload);
           setVariants((prev) => prev.map((v) => v.id === editingVariant ? res.data.data : v));
-          toast.success('Variant updated');
+          toast.success(t('productForm.variantUpdated'));
         } else {
           const res = await api.post(`/products/${id}/variants`, payload);
           setVariants((prev) => [...prev, res.data.data]);
-          toast.success('Variant added');
+          toast.success(t('productForm.variantAdded'));
         }
       } catch (err) {
         const details = err.response?.data?.details;
         const msg = details?.length
           ? details.map((d) => `${d.field}: ${d.message}`).join(', ')
-          : err.response?.data?.error || 'Failed to save variant';
+          : err.response?.data?.error || t('productForm.variantSaveFailed');
         toast.error(msg);
         return;
       }
@@ -243,10 +245,10 @@ export default function ProductFormPage() {
       // Create mode: store locally
       if (editingVariant) {
         setVariants((prev) => prev.map((v) => v._tempId === editingVariant ? { ...v, ...payload, sale_price: payload.salePrice, stock_quantity: payload.stockQuantity, url: payload.url } : v));
-        toast.success('Variant updated');
+        toast.success(t('productForm.variantUpdated'));
       } else {
         setVariants((prev) => [...prev, { ...payload, sale_price: payload.salePrice, stock_quantity: payload.stockQuantity, url: payload.url, _tempId: Date.now() }]);
-        toast.success('Variant added');
+        toast.success(t('productForm.variantAdded'));
       }
     }
     setVariantForm({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0', url: '' });
@@ -268,18 +270,18 @@ export default function ProductFormPage() {
   };
 
   const handleDeleteVariant = async (variantId) => {
-    if (!confirm('Delete this variant?')) return;
+    if (!confirm(t('productForm.deleteVariantConfirm'))) return;
     if (isEdit) {
       try {
         await api.delete(`/products/${id}/variants/${variantId}`);
         setVariants((prev) => prev.filter((v) => v.id !== variantId));
-        toast.success('Variant deleted');
+        toast.success(t('productForm.variantDeleted'));
       } catch {
-        toast.error('Failed to delete variant');
+        toast.error(t('productForm.variantDeleteFailed'));
       }
     } else {
       setVariants((prev) => prev.filter((v) => v._tempId !== variantId));
-      toast.success('Variant removed');
+      toast.success(t('productForm.variantRemoved'));
     }
   };
 
@@ -291,7 +293,7 @@ export default function ProductFormPage() {
 
   const handleSaveAttribute = async () => {
     if (!attrForm.key || !attrForm.value) {
-      toast.error('Attribute key and value are required');
+      toast.error(t('productForm.attrRequired'));
       return;
     }
 
@@ -300,24 +302,24 @@ export default function ProductFormPage() {
         if (editingAttr) {
           const res = await api.put(`/products/${id}/attributes/${editingAttr}`, attrForm);
           setAttributes((prev) => prev.map((a) => a.id === editingAttr ? res.data.data : a));
-          toast.success('Attribute updated');
+          toast.success(t('productForm.attrUpdated'));
         } else {
           const res = await api.post(`/products/${id}/attributes`, attrForm);
           setAttributes((prev) => [...prev, res.data.data]);
-          toast.success('Attribute added');
+          toast.success(t('productForm.attrAdded'));
         }
       } catch (err) {
-        toast.error(err.response?.data?.error || 'Failed to save attribute');
+        toast.error(err.response?.data?.error || t('productForm.attrSaveFailed'));
         return;
       }
     } else {
       // Create mode: store locally
       if (editingAttr) {
         setAttributes((prev) => prev.map((a) => a._tempId === editingAttr ? { ...a, ...attrForm } : a));
-        toast.success('Attribute updated');
+        toast.success(t('productForm.attrUpdated'));
       } else {
         setAttributes((prev) => [...prev, { ...attrForm, _tempId: Date.now() }]);
-        toast.success('Attribute added');
+        toast.success(t('productForm.attrAdded'));
       }
     }
     setAttrForm({ key: '', value: '' });
@@ -332,18 +334,18 @@ export default function ProductFormPage() {
   };
 
   const handleDeleteAttribute = async (attrId) => {
-    if (!confirm('Delete this attribute?')) return;
+    if (!confirm(t('productForm.deleteAttrConfirm'))) return;
     if (isEdit) {
       try {
         await api.delete(`/products/${id}/attributes/${attrId}`);
         setAttributes((prev) => prev.filter((a) => a.id !== attrId));
-        toast.success('Attribute deleted');
+        toast.success(t('productForm.attrDeleted'));
       } catch {
-        toast.error('Failed to delete attribute');
+        toast.error(t('productForm.attrDeleteFailed'));
       }
     } else {
       setAttributes((prev) => prev.filter((a) => a._tempId !== attrId));
-      toast.success('Attribute removed');
+      toast.success(t('productForm.attrRemoved'));
     }
   };
 
@@ -381,7 +383,7 @@ export default function ProductFormPage() {
           })),
         };
         await api.post('/products/create-expanded', expandedPayload);
-        toast.success(`${variants.length} products created from variants`);
+        toast.success(t('productForm.expandedCreated', { count: variants.length }));
       } else {
         // ─── Normal create/update ───
         const payload = {
@@ -398,7 +400,7 @@ export default function ProductFormPage() {
 
         if (isEdit) {
           await api.put(`/products/${id}`, payload);
-          toast.success('Product updated');
+          toast.success(t('productForm.productUpdated'));
         } else {
           const res = await api.post('/products', payload);
           const newProductId = res.data.data.id;
@@ -422,12 +424,12 @@ export default function ProductFormPage() {
               value: a.value,
             });
           }
-          toast.success('Product created');
+          toast.success(t('productForm.productCreated'));
         }
       }
       navigate('/products');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Save failed');
+      toast.error(err.response?.data?.error || t('productForm.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -445,7 +447,7 @@ export default function ProductFormPage() {
         <button onClick={() => navigate('/products')} className="p-2 text-gray-400 hover:text-gray-600 rounded">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-2xl font-bold">{isEdit ? 'Edit Product' : 'New Product'}</h1>
+        <h1 className="text-2xl font-bold">{isEdit ? t('productForm.editTitle') : t('productForm.newTitle')}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -454,18 +456,18 @@ export default function ProductFormPage() {
           <div className="lg:col-span-2 space-y-4">
             <div className="card space-y-4">
               <div>
-                <label className="label">Product Name *</label>
+                <label className="label">{t('productForm.productName')} *</label>
                 <input className="input" value={form.name} onChange={(e) => handleChange('name', e.target.value)} required />
               </div>
               <div>
-                <label className="label">Description</label>
+                <label className="label">{t('productForm.description')}</label>
                 <textarea className="input h-32" value={form.description} onChange={(e) => handleChange('description', e.target.value)} />
               </div>
             </div>
 
             {/* Product Images */}
             <div className="card space-y-4">
-              <h3 className="font-semibold">Product Images</h3>
+              <h3 className="font-semibold">{t('productForm.images')}</h3>
               {currentImages.length > 0 && (
                 <div className="grid grid-cols-4 gap-3">
                   {currentImages.map((img, idx) => (
@@ -491,7 +493,7 @@ export default function ProductFormPage() {
                         <X size={14} />
                       </button>
                       {idx === 0 && (
-                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-primary-600 text-white text-[10px] rounded">Main</span>
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-primary-600 text-white text-[10px] rounded">{t('productForm.main')}</span>
                       )}
                     </div>
                   ))}
@@ -506,9 +508,9 @@ export default function ProductFormPage() {
                   className="btn-secondary flex items-center gap-2"
                 >
                   {uploading ? (
-                    <><Loader2 size={16} className="animate-spin" /> Uploading...</>
+                    <><Loader2 size={16} className="animate-spin" /> {t('common.saving')}...</>
                   ) : (
-                    <><Upload size={16} /> Add Images</>
+                    <><Upload size={16} /> {t('productForm.addImages')}</>
                   )}
                 </button>
               </div>
@@ -516,19 +518,19 @@ export default function ProductFormPage() {
 
             {/* Pricing */}
             <div className="card space-y-4">
-              <h3 className="font-semibold">Pricing</h3>
+              <h3 className="font-semibold">{t('productForm.pricing')}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Price *</label>
+                  <label className="label">{t('productForm.priceStar')} *</label>
                   <input type="number" step="0.01" className="input" value={form.price} onChange={(e) => handleChange('price', e.target.value)} required />
                 </div>
                 <div>
-                  <label className="label">Sale Price</label>
+                  <label className="label">{t('productForm.salePrice')}</label>
                   <input type="number" step="0.01" className="input" value={form.salePrice} onChange={(e) => handleChange('salePrice', e.target.value)} />
                 </div>
                 {form.salePrice && (
                   <div className="col-span-2">
-                    <label className="label">Sale End Date</label>
+                    <label className="label">{t('productForm.saleEndDate')}</label>
                     <div className="flex items-center gap-2">
                       <input type="datetime-local" className="input w-64" value={form.saleEndDate} onChange={(e) => handleChange('saleEndDate', e.target.value)} />
                       {form.saleEndDate && (
@@ -537,17 +539,17 @@ export default function ProductFormPage() {
                         </button>
                       )}
                       {!form.saleEndDate && (
-                        <span className="text-xs text-gray-400">No end date = sale runs indefinitely</span>
+                        <span className="text-xs text-gray-400">{t('productForm.noEndDate')}</span>
                       )}
                     </div>
                   </div>
                 )}
                 <div>
-                  <label className="label">Cost Price</label>
+                  <label className="label">{t('productForm.costPrice')}</label>
                   <input type="number" step="0.01" className="input" value={form.costPrice} onChange={(e) => handleChange('costPrice', e.target.value)} />
                 </div>
                 <div>
-                  <label className="label">Tax Rate (%)</label>
+                  <label className="label">{t('productForm.taxRate')}</label>
                   <input type="number" step="0.01" className="input" value={form.taxRate} onChange={(e) => handleChange('taxRate', e.target.value)} />
                 </div>
               </div>
@@ -555,41 +557,41 @@ export default function ProductFormPage() {
 
             {/* Inventory */}
             <div className="card space-y-4">
-              <h3 className="font-semibold">Inventory</h3>
+              <h3 className="font-semibold">{t('productForm.inventory')}</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="label">SKU {!isEdit && !manualEdits.sku && form.sku && <span className="text-xs text-gray-400 font-normal">(auto)</span>}</label>
-                  <input className="input" value={form.sku} onChange={(e) => handleManualEdit('sku', e.target.value)} placeholder="Auto-generated from name" />
+                  <label className="label">{t('productForm.sku')} {!isEdit && !manualEdits.sku && form.sku && <span className="text-xs text-gray-400 font-normal">({t('productForm.skuAuto')})</span>}</label>
+                  <input className="input" value={form.sku} onChange={(e) => handleManualEdit('sku', e.target.value)} placeholder={t('productForm.skuAuto')} />
                 </div>
                 <div>
-                  <label className="label">Stock Quantity</label>
+                  <label className="label">{t('productForm.stockQuantity')}</label>
                   <input type="number" className="input" value={form.stockQuantity} onChange={(e) => handleChange('stockQuantity', e.target.value)} />
                 </div>
                 <div>
-                  <label className="label">Low Stock Alert</label>
+                  <label className="label">{t('productForm.lowStockAlert')}</label>
                   <input type="number" className="input" value={form.lowStockThreshold} onChange={(e) => handleChange('lowStockThreshold', e.target.value)} />
                 </div>
               </div>
               <div>
-                <label className="label">Weight (kg)</label>
+                <label className="label">{t('productForm.weight')}</label>
                 <input type="number" step="0.01" className="input w-48" value={form.weight} onChange={(e) => handleChange('weight', e.target.value)} />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.trackInventory} onChange={(e) => handleChange('trackInventory', e.target.checked)} className="rounded" />
-                <span className="text-sm">Track inventory</span>
+                <span className="text-sm">{t('productForm.trackInventory')}</span>
               </label>
             </div>
 
             {/* Variants */}
             <div className="card space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold">Variants</h3>
+                <h3 className="font-semibold">{t('productForm.variants')}</h3>
                 <button
                   type="button"
                   onClick={() => { setShowVariantForm(true); setEditingVariant(null); setVariantForm({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0', url: '' }); }}
                   className="btn-secondary text-xs flex items-center gap-1"
                 >
-                  <Plus size={14} /> Add Variant
+                  <Plus size={14} /> {t('productForm.addVariant')}
                 </button>
               </div>
 
@@ -602,8 +604,8 @@ export default function ProductFormPage() {
                     className="rounded"
                   />
                   <div>
-                    <span className="text-sm font-medium text-amber-900">Create separate product for each variant</span>
-                    <p className="text-xs text-amber-600 mt-0.5">Each variant becomes its own product page with cross-links.</p>
+                    <span className="text-sm font-medium text-amber-900">{t('productForm.expandVariants')}</span>
+                    <p className="text-xs text-amber-600 mt-0.5">{t('productForm.expandVariants')}</p>
                   </div>
                 </label>
               )}
@@ -640,52 +642,52 @@ export default function ProductFormPage() {
                 <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="label">Name *</label>
-                      <input className="input" placeholder="e.g. Red / XL" value={variantForm.name} onChange={(e) => setVariantForm((p) => ({ ...p, name: e.target.value }))} />
+                      <label className="label">{t('productForm.productName')} *</label>
+                      <input className="input" placeholder={t('productForm.variantNamePlaceholder')} value={variantForm.name} onChange={(e) => setVariantForm((p) => ({ ...p, name: e.target.value }))} />
                     </div>
                     <div>
-                      <label className="label">SKU</label>
+                      <label className="label">{t('productForm.sku')}</label>
                       <input className="input" value={variantForm.sku} onChange={(e) => setVariantForm((p) => ({ ...p, sku: e.target.value }))} />
                     </div>
                     <div>
-                      <label className="label">Price *</label>
+                      <label className="label">{t('productForm.priceStar')} *</label>
                       <input type="number" step="0.01" className="input" value={variantForm.price} onChange={(e) => setVariantForm((p) => ({ ...p, price: e.target.value }))} />
                     </div>
                     <div>
-                      <label className="label">Sale Price</label>
+                      <label className="label">{t('productForm.salePrice')}</label>
                       <input type="number" step="0.01" className="input" value={variantForm.salePrice} onChange={(e) => setVariantForm((p) => ({ ...p, salePrice: e.target.value }))} />
                     </div>
                     <div>
-                      <label className="label">Stock</label>
+                      <label className="label">{t('products.stock')}</label>
                       <input type="number" className="input" value={variantForm.stockQuantity} onChange={(e) => setVariantForm((p) => ({ ...p, stockQuantity: e.target.value }))} />
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <button type="button" onClick={handleSaveVariant} className="btn-primary text-xs">
-                      {editingVariant ? 'Update' : 'Add'}
+                      {editingVariant ? t('common.save') : t('productForm.addVariant')}
                     </button>
                     <button type="button" onClick={() => { setShowVariantForm(false); setEditingVariant(null); }} className="btn-secondary text-xs">
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                   </div>
                 </div>
               )}
 
               {variants.length === 0 && !showVariantForm && (
-                <p className="text-sm text-gray-500">No variants. Add variants for different sizes, colors, etc.</p>
+                <p className="text-sm text-gray-500">{t('productForm.noVariants')}</p>
               )}
             </div>
 
             {/* Attributes */}
             <div className="card space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold">Attributes</h3>
+                <h3 className="font-semibold">{t('productForm.attributes')}</h3>
                 <button
                   type="button"
                   onClick={() => { setShowAttrForm(true); setEditingAttr(null); setAttrForm({ key: '', value: '' }); }}
                   className="btn-secondary text-xs flex items-center gap-1"
                 >
-                  <Plus size={14} /> Add Attribute
+                  <Plus size={14} /> {t('productForm.addAttribute')}
                 </button>
               </div>
 
@@ -714,42 +716,42 @@ export default function ProductFormPage() {
                 <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="label">Key *</label>
-                      <input className="input" placeholder="e.g. Material" value={attrForm.key} onChange={(e) => setAttrForm((p) => ({ ...p, key: e.target.value }))} />
+                      <label className="label">{t('productForm.keyPlaceholder')} *</label>
+                      <input className="input" placeholder={t('productForm.keyPlaceholder')} value={attrForm.key} onChange={(e) => setAttrForm((p) => ({ ...p, key: e.target.value }))} />
                     </div>
                     <div>
-                      <label className="label">Value *</label>
-                      <input className="input" placeholder="e.g. Cotton" value={attrForm.value} onChange={(e) => setAttrForm((p) => ({ ...p, value: e.target.value }))} />
+                      <label className="label">{t('productForm.valuePlaceholder')} *</label>
+                      <input className="input" placeholder={t('productForm.valuePlaceholder')} value={attrForm.value} onChange={(e) => setAttrForm((p) => ({ ...p, value: e.target.value }))} />
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <button type="button" onClick={handleSaveAttribute} className="btn-primary text-xs">
-                      {editingAttr ? 'Update' : 'Add'}
+                      {editingAttr ? t('common.save') : t('productForm.addAttribute')}
                     </button>
                     <button type="button" onClick={() => { setShowAttrForm(false); setEditingAttr(null); }} className="btn-secondary text-xs">
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                   </div>
                 </div>
               )}
 
               {attributes.length === 0 && !showAttrForm && (
-                <p className="text-sm text-gray-500">No attributes. Add custom attributes like Material, Color, etc.</p>
+                <p className="text-sm text-gray-500">{t('productForm.noAttributes')}</p>
               )}
             </div>
 
             {/* SEO */}
             <div className="card space-y-4">
-              <h3 className="font-semibold">SEO</h3>
+              <h3 className="font-semibold">{t('productForm.seo')}</h3>
               <div>
-                <label className="label">Meta Title {!isEdit && !manualEdits.metaTitle && form.metaTitle && <span className="text-xs text-gray-400 font-normal">(auto)</span>}</label>
-                <input className="input" value={form.metaTitle} onChange={(e) => handleManualEdit('metaTitle', e.target.value)} placeholder="Auto-generated from product name" />
-                {form.metaTitle && <p className="text-xs text-gray-400 mt-1">{form.metaTitle.length}/60 characters</p>}
+                <label className="label">{t('productForm.metaTitle')} {!isEdit && !manualEdits.metaTitle && form.metaTitle && <span className="text-xs text-gray-400 font-normal">(auto)</span>}</label>
+                <input className="input" value={form.metaTitle} onChange={(e) => handleManualEdit('metaTitle', e.target.value)} placeholder={t('productForm.metaTitlePlaceholder')} />
+                {form.metaTitle && <p className="text-xs text-gray-400 mt-1">{t('productForm.metaTitleCount', { count: form.metaTitle.length })}</p>}
               </div>
               <div>
-                <label className="label">Meta Description {!isEdit && !manualEdits.metaDescription && form.metaDescription && <span className="text-xs text-gray-400 font-normal">(auto)</span>}</label>
-                <textarea className="input h-20" value={form.metaDescription} onChange={(e) => handleManualEdit('metaDescription', e.target.value)} placeholder="Auto-generated from description" />
-                {form.metaDescription && <p className="text-xs text-gray-400 mt-1">{form.metaDescription.length}/160 characters</p>}
+                <label className="label">{t('productForm.metaDescription')} {!isEdit && !manualEdits.metaDescription && form.metaDescription && <span className="text-xs text-gray-400 font-normal">(auto)</span>}</label>
+                <textarea className="input h-20" value={form.metaDescription} onChange={(e) => handleManualEdit('metaDescription', e.target.value)} placeholder={t('productForm.metaDescPlaceholder')} />
+                {form.metaDescription && <p className="text-xs text-gray-400 mt-1">{t('productForm.metaDescCount', { count: form.metaDescription.length })}</p>}
               </div>
             </div>
           </div>
@@ -757,18 +759,18 @@ export default function ProductFormPage() {
           {/* Sidebar */}
           <div className="space-y-4">
             <div className="card space-y-4">
-              <h3 className="font-semibold">Status</h3>
+              <h3 className="font-semibold">{t('productForm.statusLabel')}</h3>
               <select className="input" value={form.status} onChange={(e) => handleChange('status', e.target.value)}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
+                <option value="draft">{t('products.draft')}</option>
+                <option value="published">{t('products.published')}</option>
+                <option value="archived">{t('products.archived')}</option>
               </select>
             </div>
 
             <div className="card space-y-3">
-              <h3 className="font-semibold">Categories</h3>
+              <h3 className="font-semibold">{t('productForm.categoriesLabel')}</h3>
               {categories.length === 0 ? (
-                <p className="text-sm text-gray-500">No categories</p>
+                <p className="text-sm text-gray-500">{t('productForm.noCategories')}</p>
               ) : (
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {categories.map((cat) => (
@@ -792,9 +794,9 @@ export default function ProductFormPage() {
         <div className="flex gap-3">
           <button type="submit" className="btn-primary" disabled={saving}>
             <Save size={16} className="mr-2" />
-            {saving ? 'Saving...' : expandVariants && variants.length > 0 && !isEdit ? `Create ${variants.length} Products` : (isEdit ? 'Update Product' : 'Create Product')}
+            {saving ? t('common.saving') : expandVariants && variants.length > 0 && !isEdit ? t('productForm.createCount', { count: variants.length }) : (isEdit ? t('productForm.updateProduct') : t('productForm.createProduct'))}
           </button>
-          <button type="button" className="btn-secondary" onClick={() => navigate('/products')}>Cancel</button>
+          <button type="button" className="btn-secondary" onClick={() => navigate('/products')}>{t('common.cancel')}</button>
         </div>
       </form>
     </div>

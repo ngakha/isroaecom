@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 import { AlertCircle, CheckCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -20,6 +21,7 @@ export default function RegisterPage() {
   const [formError, setFormError] = useState('');
   const register = useAuthStore((s) => s.register);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -29,25 +31,25 @@ export default function RegisterPage() {
 
   const validate = () => {
     const errs = {};
-    if (!form.firstName.trim()) errs.firstName = 'First name is required';
-    if (!form.lastName.trim()) errs.lastName = 'Last name is required';
+    if (!form.firstName.trim()) errs.firstName = t('auth.firstNameRequired');
+    if (!form.lastName.trim()) errs.lastName = t('auth.lastNameRequired');
     if (!form.email.trim()) {
-      errs.email = 'Email is required';
+      errs.email = t('auth.emailRequired');
     } else if (!/\S+@\S+\.\S+/.test(form.email)) {
-      errs.email = 'Enter a valid email address';
+      errs.email = t('auth.emailInvalid');
     }
     if (!form.password) {
-      errs.password = 'Password is required';
+      errs.password = t('auth.passwordRequired');
     } else if (form.password.length < 6) {
-      errs.password = 'Password must be at least 6 characters';
+      errs.password = t('auth.passwordMinLength');
     }
     if (!form.confirmPassword) {
-      errs.confirmPassword = 'Please confirm your password';
+      errs.confirmPassword = t('auth.confirmPasswordRequired');
     } else if (form.password !== form.confirmPassword) {
-      errs.confirmPassword = 'Passwords do not match';
+      errs.confirmPassword = t('auth.passwordsMismatch');
     }
     if (form.phone && !/^\+?[\d\s\-()]{7,20}$/.test(form.phone)) {
-      errs.phone = 'Enter a valid phone number';
+      errs.phone = t('auth.invalidPhone');
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -85,12 +87,12 @@ export default function RegisterPage() {
         password: form.password,
         phone: form.phone || undefined,
       });
-      toast.success('Account created successfully!');
+      toast.success(t('auth.accountCreated'));
       navigate('/account');
     } catch (err) {
       const msg = err.response?.data?.error || 'Registration failed';
       if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('exists')) {
-        setErrors((prev) => ({ ...prev, email: 'This email is already registered' }));
+        setErrors((prev) => ({ ...prev, email: t('auth.emailExists') }));
       } else {
         setFormError(msg);
       }
@@ -102,9 +104,9 @@ export default function RegisterPage() {
   return (
     <div className="max-w-container mx-auto px-4 lg:px-6 py-16">
       <div className="max-w-sm mx-auto">
-        <h1 className="text-2xl font-semibold text-primary-900 text-center mb-2">Create Account</h1>
+        <h1 className="text-2xl font-semibold text-primary-900 text-center mb-2">{t('auth.createAccount')}</h1>
         <p className="text-sm text-muted text-center mb-8">
-          Sign up to start shopping and track your orders.
+          {t('auth.createAccountSubtitle')}
         </p>
 
         {formError && (
@@ -117,14 +119,14 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="First Name"
+              label={t('checkout.firstName')}
               value={form.firstName}
               onChange={handleChange('firstName')}
               error={errors.firstName}
               required
             />
             <Input
-              label="Last Name"
+              label={t('checkout.lastName')}
               value={form.lastName}
               onChange={handleChange('lastName')}
               error={errors.lastName}
@@ -132,29 +134,29 @@ export default function RegisterPage() {
             />
           </div>
           <Input
-            label="Email"
+            label={t('auth.email')}
             type="email"
             value={form.email}
             onChange={handleChange('email')}
-            placeholder="you@example.com"
+            placeholder={t('auth.emailPlaceholder')}
             error={errors.email}
             required
           />
           <Input
-            label="Phone (optional)"
+            label={t('auth.phone')}
             type="tel"
             value={form.phone}
             onChange={handleChange('phone')}
-            placeholder="+995..."
+            placeholder={t('auth.phonePlaceholder')}
             error={errors.phone}
           />
           <div>
             <Input
-              label="Password"
+              label={t('auth.password')}
               type="password"
               value={form.password}
               onChange={handleChange('password')}
-              placeholder="Min 6 characters"
+              placeholder={t('auth.minChars')}
               error={errors.password}
               required
             />
@@ -167,13 +169,13 @@ export default function RegisterPage() {
                   />
                 </div>
                 <p className={`text-xs mt-1 ${passwordStrength.color}`}>
-                  {passwordStrength.label} password
+                  {t('auth.' + passwordStrength.label.toLowerCase())}
                 </p>
               </div>
             )}
           </div>
           <Input
-            label="Confirm Password"
+            label={t('auth.confirmPassword')}
             type="password"
             value={form.confirmPassword}
             onChange={handleChange('confirmPassword')}
@@ -181,14 +183,14 @@ export default function RegisterPage() {
             required
           />
           <Button type="submit" fullWidth loading={loading}>
-            Create Account
+            {t('auth.createAccount')}
           </Button>
         </form>
 
         <p className="text-sm text-muted text-center mt-6">
-          Already have an account?{' '}
+          {t('auth.hasAccount')}{' '}
           <Link to="/login" className="text-primary-900 font-medium hover:underline">
-            Sign In
+            {t('auth.signIn')}
           </Link>
         </p>
       </div>

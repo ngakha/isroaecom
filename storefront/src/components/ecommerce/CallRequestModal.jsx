@@ -3,8 +3,10 @@ import { PhoneCall, CheckCircle } from 'lucide-react';
 import Modal from '../ui/Modal';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 export default function CallRequestModal({ product, isOpen, onClose }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({ customerName: '', phone: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -69,14 +71,14 @@ export default function CallRequestModal({ product, isOpen, onClose }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={success ? undefined : 'Request a Call'} size="sm">
+    <Modal isOpen={isOpen} onClose={handleClose} title={success ? undefined : t('callRequest.title')} size="sm">
       {success ? (
         <div className="text-center py-6">
           <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
             <CheckCircle size={28} className="text-green-600" />
           </div>
-          <h3 className="text-lg font-semibold text-primary-900 mb-1">Thank You!</h3>
-          <p className="text-sm text-muted">Our operator will contact you shortly.</p>
+          <h3 className="text-lg font-semibold text-primary-900 mb-1">{t('callRequest.thankYou')}</h3>
+          <p className="text-sm text-muted">{t('callRequest.operatorWillContact')}</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,26 +101,26 @@ export default function CallRequestModal({ product, isOpen, onClose }) {
           )}
 
           <p className="text-sm text-primary-600">
-            Would you like our operator to contact you? Please leave your details and we'll call you back.
+            {t('callRequest.description')}
           </p>
 
           <div>
-            <label className="block text-sm font-medium text-primary-900 mb-1">Your Name *</label>
+            <label className="block text-sm font-medium text-primary-900 mb-1">{t('callRequest.yourName')}</label>
             <input
               type="text"
               className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-              placeholder="სახელი გვარი"
+              placeholder={t('callRequest.namePlaceholder')}
               value={form.customerName}
               onChange={handleNameChange}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-primary-900 mb-1">Phone Number *</label>
+            <label className="block text-sm font-medium text-primary-900 mb-1">{t('callRequest.phoneNumber')}</label>
             <input
               type="tel"
               className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-              placeholder="+995 5XX XXX XXX"
+              placeholder={t('callRequest.phonePlaceholder')}
               value={form.phone}
               onChange={handlePhoneChange}
               maxLength={16}
@@ -126,10 +128,10 @@ export default function CallRequestModal({ product, isOpen, onClose }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-primary-900 mb-1">Message (optional)</label>
+            <label className="block text-sm font-medium text-primary-900 mb-1">{t('callRequest.message')}</label>
             <textarea
               className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 h-20 resize-none"
-              placeholder="Any additional details..."
+              placeholder={t('callRequest.messagePlaceholder')}
               value={form.message}
               onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
             />
@@ -145,7 +147,7 @@ export default function CallRequestModal({ product, isOpen, onClose }) {
             ) : (
               <>
                 <PhoneCall size={16} />
-                Request a Call
+                {t('callRequest.submit')}
               </>
             )}
           </button>

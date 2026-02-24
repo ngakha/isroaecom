@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Search, Eye, Archive, ArchiveRestore } from 'lucide-react';
 import { usePaginatedApi } from '../../hooks/useApi';
 import DataTable from '../../components/ui/DataTable';
@@ -8,6 +9,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function OrdersPage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('active');
   const { data: orders, pagination, loading, setPage, updateFilters, refetch } = usePaginatedApi('/orders');
@@ -25,52 +27,52 @@ export default function OrdersPage() {
   const handleArchive = async (id) => {
     try {
       await api.patch(`/orders/${id}/archive`);
-      toast.success('Order archived');
+      toast.success(t('orders.orderArchived'));
       refetch();
     } catch {
-      toast.error('Archive failed');
+      toast.error(t('orders.archiveFailed'));
     }
   };
 
   const handleUnarchive = async (id) => {
     try {
       await api.patch(`/orders/${id}/unarchive`);
-      toast.success('Order restored');
+      toast.success(t('orders.orderRestored'));
       refetch();
     } catch {
-      toast.error('Restore failed');
+      toast.error(t('orders.restoreFailed'));
     }
   };
 
   const columns = [
     {
       key: 'order_number',
-      label: 'Order #',
+      label: t('orders.orderNumber'),
       render: (row) => (
         <Link to={`/orders/${row.id}`} className="text-primary-600 hover:underline font-medium">
           {row.order_number}
         </Link>
       ),
     },
-    { key: 'customer_name', label: 'Customer' },
+    { key: 'customer_name', label: t('orders.customer') },
     {
       key: 'status',
-      label: 'Status',
+      label: t('common.status'),
       render: (row) => <StatusBadge status={row.status} />,
     },
     {
       key: 'payment_status',
-      label: 'Payment',
+      label: t('orders.payment'),
       render: (row) => <StatusBadge status={row.payment_status} />,
     },
     {
       key: 'total',
-      label: 'Total',
+      label: t('orders.total'),
       render: (row) => <span className="font-medium">{row.total} {row.currency}</span>,
     },
     {
       key: 'created_at',
-      label: 'Date',
+      label: t('common.date'),
       render: (row) => new Date(row.created_at).toLocaleDateString(),
     },
     {
@@ -85,7 +87,7 @@ export default function OrdersPage() {
             <button
               onClick={() => handleArchive(row.id)}
               className="p-1.5 text-gray-400 hover:text-amber-600"
-              title="Archive"
+              title={t('orders.archive')}
             >
               <Archive size={16} />
             </button>
@@ -93,7 +95,7 @@ export default function OrdersPage() {
             <button
               onClick={() => handleUnarchive(row.id)}
               className="p-1.5 text-gray-400 hover:text-green-600"
-              title="Restore"
+              title={t('orders.restore')}
             >
               <ArchiveRestore size={16} />
             </button>
@@ -105,7 +107,7 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Orders</h1>
+      <h1 className="text-2xl font-bold">{t('orders.title')}</h1>
 
       {/* Tabs */}
       <div className="flex items-center gap-4 border-b border-gray-200">
@@ -117,7 +119,7 @@ export default function OrdersPage() {
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
-          Active Orders
+          {t('orders.activeOrders')}
         </button>
         <button
           onClick={() => handleTabChange('archived')}
@@ -127,7 +129,7 @@ export default function OrdersPage() {
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
-          Archived
+          {t('orders.archived')}
         </button>
       </div>
 
@@ -135,20 +137,20 @@ export default function OrdersPage() {
         <form onSubmit={handleSearch} className="flex gap-2 flex-1 max-w-md">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" className="input pl-9" placeholder="Search orders..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input type="text" className="input pl-9" placeholder={t('orders.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <button type="submit" className="btn-secondary">Search</button>
         </form>
 
         <select className="input w-auto" onChange={(e) => updateFilters({ status: e.target.value || undefined })}>
-          <option value="">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="processing">Processing</option>
-          <option value="shipped">Shipped</option>
-          <option value="delivered">Delivered</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
+          <option value="">{t('orders.allStatuses')}</option>
+          <option value="pending">{t('status.pending')}</option>
+          <option value="confirmed">{t('status.confirmed')}</option>
+          <option value="processing">{t('status.processing')}</option>
+          <option value="shipped">{t('status.shipped')}</option>
+          <option value="delivered">{t('status.delivered')}</option>
+          <option value="completed">{t('status.completed')}</option>
+          <option value="cancelled">{t('status.cancelled')}</option>
         </select>
       </div>
 
@@ -158,7 +160,7 @@ export default function OrdersPage() {
         pagination={pagination}
         onPageChange={setPage}
         loading={loading}
-        emptyMessage={tab === 'archived' ? 'No archived orders' : 'No orders found'}
+        emptyMessage={tab === 'archived' ? t('orders.noArchived') : t('orders.noOrders')}
       />
     </div>
   );

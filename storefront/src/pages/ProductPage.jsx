@@ -20,6 +20,7 @@ import CallRequestModal from '../components/ecommerce/CallRequestModal';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 export default function ProductPage() {
   const { slug } = useParams();
@@ -39,6 +40,7 @@ export default function ProductPage() {
   const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
   const customer = useAuthStore((s) => s.customer);
+  const { t } = useTranslation();
 
   useEffect(() => {
     setLoading(true);
@@ -75,10 +77,10 @@ export default function ProductPage() {
   if (!product) {
     return (
       <div className="max-w-container mx-auto px-4 lg:px-6 py-16 text-center">
-        <h1 className="text-2xl font-semibold text-primary-900 mb-2">Product Not Found</h1>
-        <p className="text-muted mb-6">The product you&apos;re looking for doesn&apos;t exist.</p>
+        <h1 className="text-2xl font-semibold text-primary-900 mb-2">{t('product.notFound')}</h1>
+        <p className="text-muted mb-6">{t('product.notFoundDesc')}</p>
         <Link to="/shop" className="text-sm text-primary-900 font-medium hover:underline">
-          Back to Shop
+          {t('product.backToShop')}
         </Link>
       </div>
     );
@@ -101,7 +103,7 @@ export default function ProductPage() {
     setAdding(true);
     try {
       await addItem(product.id, selectedVariant?.id || null, quantity);
-      toast.success('Added to cart');
+      toast.success(t('product.addedToCart'));
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -111,19 +113,19 @@ export default function ProductPage() {
 
   const handleWishlist = async () => {
     if (!customer) {
-      toast.error('Please sign in to use wishlist');
+      toast.error(t('product.signInForWishlist'));
       return;
     }
     try {
       if (wishlisted) {
         await wishlistRemove(product.id);
-        toast.success('Removed from wishlist');
+        toast.success(t('product.removedFromWishlist'));
       } else {
         await wishlistAdd(product.id);
-        toast.success('Added to wishlist');
+        toast.success(t('product.addedToWishlist'));
       }
     } catch {
-      toast.error('Wishlist error');
+      toast.error(t('product.wishlistError'));
     }
   };
 
@@ -177,23 +179,23 @@ export default function ProductPage() {
           {/* Stock */}
           <div className="mt-3">
             {isOutOfStock ? (
-              <Badge variant="error" dot>Out of Stock</Badge>
+              <Badge variant="error" dot>{t('product.outOfStock')}</Badge>
             ) : isLowStock ? (
-              <Badge variant="warning" dot>Only {activeStock} left</Badge>
+              <Badge variant="warning" dot>{t('product.onlyLeft', { count: activeStock })}</Badge>
             ) : (
-              <Badge variant="success" dot>In Stock</Badge>
+              <Badge variant="success" dot>{t('product.inStock')}</Badge>
             )}
           </div>
 
           {/* SKU */}
           {product.sku && (
-            <p className="text-xs text-muted mt-2">SKU: {product.sku}</p>
+            <p className="text-xs text-muted mt-2">{t('product.sku', { value: product.sku })}</p>
           )}
 
           {/* Variants */}
           {product.variants?.length > 0 && (
             <div className="mt-6">
-              <span className="text-sm font-medium text-primary-900">Options:</span>
+              <span className="text-sm font-medium text-primary-900">{t('product.options')}</span>
               <div className="flex flex-wrap gap-2 mt-2">
                 {product.variants.filter((v) => v.is_active).map((variant) => {
                   const isSelf = !variant.url;
@@ -229,7 +231,7 @@ export default function ProductPage() {
           {/* Description inline */}
           {product.description && (
             <div className="mt-6">
-              <span className="text-sm font-medium text-primary-900">Description</span>
+              <span className="text-sm font-medium text-primary-900">{t('product.description')}</span>
               <p className="mt-1.5 text-sm text-primary-500 leading-relaxed line-clamp-4">
                 {product.description}
               </p>
@@ -252,7 +254,7 @@ export default function ProductPage() {
                   ? 'border-error/30 bg-error/5 text-error'
                   : 'border-primary-200 text-primary-400 hover:border-primary-900 hover:text-primary-900'
               )}
-              title={wishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+              title={wishlisted ? t('product.removeFromWishlist') : t('product.addToWishlist')}
             >
               <Heart size={18} className={wishlisted ? 'fill-current' : ''} />
             </button>
@@ -264,7 +266,7 @@ export default function ProductPage() {
               className="mt-4 w-full py-3.5 rounded-lg text-sm font-semibold tracking-wide transition-all flex items-center justify-center gap-2 bg-green-600 text-white hover:bg-green-700 active:scale-[0.99]"
             >
               <PhoneCall size={18} />
-              Request a Call
+              {t('product.requestCall')}
             </button>
           ) : (
             <button
@@ -282,7 +284,7 @@ export default function ProductPage() {
               ) : (
                 <>
                   <ShoppingBag size={18} />
-                  {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                  {isOutOfStock ? t('product.outOfStock') : t('product.addToCart')}
                 </>
               )}
             </button>
@@ -293,15 +295,15 @@ export default function ProductPage() {
             <div className="flex items-center gap-3 px-5 py-3.5">
               <Truck size={20} className="text-primary-900 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-primary-900">Free Shipping</p>
-                <p className="text-xs text-muted">On all orders over $50</p>
+                <p className="text-sm font-medium text-primary-900">{t('product.freeShipping')}</p>
+                <p className="text-xs text-muted">{t('product.freeShippingDesc')}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 px-5 py-3.5">
               <Shield size={20} className="text-primary-900 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-primary-900">Warranty</p>
-                <p className="text-xs text-muted">Coverage on products</p>
+                <p className="text-sm font-medium text-primary-900">{t('product.warranty')}</p>
+                <p className="text-xs text-muted">{t('product.warrantyDesc')}</p>
               </div>
             </div>
           </div>
@@ -311,7 +313,7 @@ export default function ProductPage() {
       {/* ─── Specifications (Attributes) ─── */}
       {product.attributes?.length > 0 && (
         <div className="border-t border-border py-12">
-          <h2 className="text-lg font-bold text-primary-900 mb-6">Specifications</h2>
+          <h2 className="text-lg font-bold text-primary-900 mb-6">{t('product.specifications')}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {product.attributes.map((attr) => (
               <div
@@ -331,9 +333,9 @@ export default function ProductPage() {
       {(relatedLoading || relatedProducts.length > 0) && (
         <div className="border-t border-border py-12">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-lg font-bold text-primary-900">You May Also Like</h2>
+            <h2 className="text-lg font-bold text-primary-900">{t('product.youMayAlsoLike')}</h2>
             <Link to="/shop" className="text-sm text-muted hover:text-primary-900 transition-colors">
-              View All
+              {t('product.viewAll')}
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Edit, Trash2, ChevronRight, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { useAuthStore } from '../../store/authStore';
@@ -7,6 +8,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function CategoriesPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const canDelete = user?.role === 'super_admin' || user?.role === 'shop_manager';
   const { data, loading, refetch } = useApi('/products/categories');
@@ -52,7 +54,7 @@ export default function CategoriesPage() {
         setForm((prev) => ({ ...prev, imageUrl: uploaded.url }));
       }
     } catch (err) {
-      toast.error('Image upload failed');
+      toast.error(t('categories.imageUploadFailed'));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -71,27 +73,27 @@ export default function CategoriesPage() {
 
       if (editingCategory) {
         await api.put(`/products/categories/${editingCategory.id}`, payload);
-        toast.success('Category updated');
+        toast.success(t('categories.categoryUpdated'));
       } else {
         await api.post('/products/categories', payload);
-        toast.success('Category created');
+        toast.success(t('categories.categoryCreated'));
       }
 
       setModalOpen(false);
       refetch();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Save failed');
+      toast.error(err.response?.data?.error || t('categories.saveFailed'));
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this category? Child categories will be moved to parent.')) return;
+    if (!confirm(t('categories.deleteConfirm'))) return;
     try {
       await api.delete(`/products/categories/${id}`);
-      toast.success('Category deleted');
+      toast.success(t('categories.deleted'));
       refetch();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Delete failed');
+      toast.error(err.response?.data?.error || t('categories.deleteFailed'));
     }
   };
 
@@ -108,7 +110,7 @@ export default function CategoriesPage() {
         {cat.children?.length > 0 && <ChevronRight size={14} className="text-gray-400" />}
         <span className="flex-1 text-sm font-medium">{cat.name}</span>
         <span className="text-xs text-gray-400">{cat.slug}</span>
-        <button onClick={() => openCreate(cat.id)} className="p-1 text-gray-400 hover:text-green-600" title="Add child">
+        <button onClick={() => openCreate(cat.id)} className="p-1 text-gray-400 hover:text-green-600" title={t('categories.addChild')}>
           <Plus size={14} />
         </button>
         <button onClick={() => openEdit(cat)} className="p-1 text-gray-400 hover:text-primary-600">
@@ -127,9 +129,9 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Categories</h1>
+        <h1 className="text-2xl font-bold">{t('categories.title')}</h1>
         <button className="btn-primary" onClick={() => openCreate()}>
-          <Plus size={16} className="mr-2" /> Add Category
+          <Plus size={16} className="mr-2" /> {t('categories.addCategory')}
         </button>
       </div>
 
@@ -139,7 +141,7 @@ export default function CategoriesPage() {
             {[...Array(5)].map((_, i) => <div key={i} className="h-8 bg-gray-100 rounded" />)}
           </div>
         ) : categories.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">No categories yet</p>
+          <p className="text-center text-gray-500 py-8">{t('categories.noCategories')}</p>
         ) : (
           <div className="divide-y">
             {categories.map((cat) => renderCategory(cat))}
@@ -148,20 +150,20 @@ export default function CategoriesPage() {
       </div>
 
       {/* Create/Edit Modal */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingCategory ? 'Edit Category' : 'New Category'}>
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingCategory ? t('categories.editCategory') : t('categories.newCategory')}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="label">Name *</label>
+            <label className="label">{t('categories.nameLabel')} *</label>
             <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           </div>
           <div>
-            <label className="label">Description</label>
+            <label className="label">{t('categories.descriptionLabel')}</label>
             <textarea className="input h-20" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
 
           {/* Category Image */}
           <div>
-            <label className="label">Image</label>
+            <label className="label">{t('categories.imageLabel')}</label>
             {form.imageUrl ? (
               <div className="relative inline-block">
                 <img src={form.imageUrl} alt="Category" className="w-32 h-24 object-cover rounded-lg border" />
@@ -189,15 +191,15 @@ export default function CategoriesPage() {
                   className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <Upload size={16} />
-                  {uploading ? 'Uploading...' : 'Upload Image'}
+                  {uploading ? t('common.saving') : t('categories.uploadImage')}
                 </button>
               </div>
             )}
           </div>
 
           <div className="flex gap-3 justify-end">
-            <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>Cancel</button>
-            <button type="submit" className="btn-primary">{editingCategory ? 'Update' : 'Create'}</button>
+            <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>{t('common.cancel')}</button>
+            <button type="submit" className="btn-primary">{t('common.save')}</button>
           </div>
         </form>
       </Modal>

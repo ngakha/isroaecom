@@ -1,21 +1,22 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../../store/settingsStore';
-
-const DEFAULT_MESSAGE = 'გამარჯობა! მაინტერესებს თქვენი პროდუქცია.';
 
 export default function WhatsAppButton() {
   const [showTooltip, setShowTooltip] = useState(false);
+  const { t } = useTranslation();
   const whatsappNumber = useSettingsStore((s) => s.whatsappNumber);
 
   if (!whatsappNumber) return null;
 
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(DEFAULT_MESSAGE)}`;
+  const defaultMessage = 'გამარჯობა! მაინტერესებს თქვენი პროდუქცია.';
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(defaultMessage)}`;
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
       {showTooltip && (
         <div className="absolute bottom-full right-0 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 px-4 py-2 whitespace-nowrap text-sm text-gray-700">
-          მოგვწერეთ WhatsApp-ზე
+          {t('whatsapp.tooltip')}
         </div>
       )}
       <a

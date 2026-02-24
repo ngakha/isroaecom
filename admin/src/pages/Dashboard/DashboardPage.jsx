@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ShoppingCart, DollarSign, Package, Users } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
@@ -20,6 +21,7 @@ function StatCard({ title, value, icon: Icon, color }) {
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const role = user?.role;
   const canViewStats = role === 'super_admin' || role === 'shop_manager';
@@ -56,7 +58,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(canViewStats ? 4 : 2)].map((_, i) => (
             <div key={i} className="card animate-pulse h-24" />
@@ -70,8 +72,8 @@ export default function DashboardPage() {
   if (!canViewStats) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-gray-500">Welcome back, {user?.firstName}!</p>
+        <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
+        <p className="text-gray-500">{t('dashboard.welcome', { name: user?.firstName })}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link to="/products" className="card hover:shadow-md transition-shadow">
@@ -80,7 +82,7 @@ export default function DashboardPage() {
                 <Package size={24} className="text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Products</p>
+                <p className="text-sm text-gray-500">{t('dashboard.products')}</p>
                 <p className="text-2xl font-bold">{productCount}</p>
               </div>
             </div>
@@ -91,8 +93,8 @@ export default function DashboardPage() {
                 <Package size={24} className="text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Categories</p>
-                <p className="text-lg font-medium text-primary-600">Manage</p>
+                <p className="text-sm text-gray-500">{t('dashboard.categories')}</p>
+                <p className="text-lg font-medium text-primary-600">{t('common.manage')}</p>
               </div>
             </div>
           </Link>
@@ -102,8 +104,8 @@ export default function DashboardPage() {
                 <Package size={24} className="text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Media Library</p>
-                <p className="text-lg font-medium text-primary-600">Upload</p>
+                <p className="text-sm text-gray-500">{t('dashboard.mediaLibrary')}</p>
+                <p className="text-lg font-medium text-primary-600">{t('common.upload')}</p>
               </div>
             </div>
           </Link>
@@ -115,30 +117,30 @@ export default function DashboardPage() {
   // Super Admin / Shop Manager Dashboard
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Orders"
+          title={t('dashboard.totalOrders')}
           value={stats?.totalOrders || 0}
           icon={ShoppingCart}
           color="bg-blue-500"
         />
         <StatCard
-          title="Today's Orders"
+          title={t('dashboard.todayOrders')}
           value={stats?.todayOrders || 0}
           icon={Package}
           color="bg-green-500"
         />
         <StatCard
-          title="Total Revenue"
+          title={t('dashboard.totalRevenue')}
           value={`${(stats?.totalRevenue || 0).toFixed(2)} GEL`}
           icon={DollarSign}
           color="bg-purple-500"
         />
         <StatCard
-          title="Today's Revenue"
+          title={t('dashboard.todayRevenue')}
           value={`${(stats?.todayRevenue || 0).toFixed(2)} GEL`}
           icon={DollarSign}
           color="bg-orange-500"
@@ -148,10 +150,10 @@ export default function DashboardPage() {
       {/* Order Status Chart */}
       {stats?.statusCounts && Object.keys(stats.statusCounts).length > 0 && (
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4">Orders by Status</h2>
+          <h2 className="text-lg font-semibold mb-4">{t('dashboard.ordersByStatus')}</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={Object.entries(stats.statusCounts).map(([status, count]) => ({
-              status: status.replace(/_/g, ' '),
+              status: t(`status.${status}`),
               count,
             }))}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -167,23 +169,23 @@ export default function DashboardPage() {
       {/* Recent Orders */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Recent Orders</h2>
+          <h2 className="text-lg font-semibold">{t('dashboard.recentOrders')}</h2>
           <Link to="/orders" className="text-sm text-primary-600 hover:text-primary-700">
-            View all
+            {t('common.viewAll')}
           </Link>
         </div>
 
         {recentOrders.length === 0 ? (
-          <p className="text-gray-500 text-sm py-4">No orders yet</p>
+          <p className="text-gray-500 text-sm py-4">{t('dashboard.noOrders')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2 text-gray-600">Order #</th>
-                  <th className="text-left py-2 text-gray-600">Customer</th>
-                  <th className="text-left py-2 text-gray-600">Status</th>
-                  <th className="text-right py-2 text-gray-600">Total</th>
+                  <th className="text-left py-2 text-gray-600">{t('dashboard.orderNumber')}</th>
+                  <th className="text-left py-2 text-gray-600">{t('dashboard.customer')}</th>
+                  <th className="text-left py-2 text-gray-600">{t('common.status')}</th>
+                  <th className="text-right py-2 text-gray-600">{t('dashboard.total')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -197,7 +199,7 @@ export default function DashboardPage() {
                     <td className="py-2">{order.customer_name}</td>
                     <td className="py-2">
                       <span className="capitalize text-xs px-2 py-1 rounded-full bg-gray-100">
-                        {order.status}
+                        {t(`status.${order.status}`)}
                       </span>
                     </td>
                     <td className="py-2 text-right font-medium">{order.total} {order.currency}</td>

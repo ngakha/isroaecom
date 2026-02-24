@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Trash2, Save, X, Pencil } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import Modal from '../../components/ui/Modal';
 
 export default function ShippingZonesPage() {
+  const { t } = useTranslation();
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -39,7 +41,7 @@ export default function ShippingZonesPage() {
   };
 
   const handleSave = async () => {
-    if (!form.name) { toast.error('Zone name is required'); return; }
+    if (!form.name) { toast.error(t('shipping.nameRequired')); return; }
 
     const payload = {
       name: form.name,
@@ -52,26 +54,26 @@ export default function ShippingZonesPage() {
     try {
       if (editingZone) {
         await api.put(`/shipping/zones/${editingZone}`, payload);
-        toast.success('Shipping zone updated');
+        toast.success(t('shipping.updated'));
       } else {
         await api.post('/shipping/zones', payload);
-        toast.success('Shipping zone created');
+        toast.success(t('shipping.created'));
       }
       resetForm();
       loadZones();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Save failed');
+      toast.error(err.response?.data?.error || t('shipping.saveFailed'));
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this shipping zone?')) return;
+    if (!confirm(t('shipping.deleteConfirm'))) return;
     try {
       await api.delete(`/shipping/zones/${id}`);
-      toast.success('Shipping zone deleted');
+      toast.success(t('shipping.deleted'));
       loadZones();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Delete failed');
+      toast.error(err.response?.data?.error || t('shipping.deleteFailed'));
     }
   };
 
@@ -82,16 +84,16 @@ export default function ShippingZonesPage() {
   return (
     <div className="space-y-4 max-w-3xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Shipping Zones</h1>
+        <h1 className="text-2xl font-bold">{t('shipping.title')}</h1>
         <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary">
-          <Plus size={16} className="mr-2" /> Add Zone
+          <Plus size={16} className="mr-2" /> {t('shipping.addZone')}
         </button>
       </div>
 
       {zones.length === 0 ? (
         <div className="card text-center py-12 text-gray-500">
-          <p>No shipping zones configured.</p>
-          <p className="text-sm mt-1">Add zones to set delivery rates by region.</p>
+          <p>{t('shipping.noZones')}</p>
+          <p className="text-sm mt-1">{t('shipping.noZonesHint')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -100,12 +102,12 @@ export default function ShippingZonesPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <p className="font-medium">{zone.name}</p>
-                  {!zone.is_active && <span className="text-xs px-1.5 py-0.5 bg-gray-200 rounded">Inactive</span>}
+                  {!zone.is_active && <span className="text-xs px-1.5 py-0.5 bg-gray-200 rounded">{t('common.inactive')}</span>}
                 </div>
                 <div className="text-sm text-gray-500 mt-1 flex gap-4">
-                  <span>Country: {zone.country === '*' ? 'All' : zone.country}</span>
-                  <span>Rate: {zone.flat_rate} GEL</span>
-                  {zone.free_shipping_threshold && <span>Free over: {zone.free_shipping_threshold} GEL</span>}
+                  <span>{t('shipping.country')}: {zone.country === '*' ? t('shipping.allCountries') : zone.country}</span>
+                  <span>{t('shipping.rate', { amount: zone.flat_rate })}</span>
+                  {zone.free_shipping_threshold && <span>{t('shipping.freeOver', { amount: zone.free_shipping_threshold })}</span>}
                 </div>
               </div>
               <div className="flex gap-2">
@@ -121,33 +123,33 @@ export default function ShippingZonesPage() {
         </div>
       )}
 
-      <Modal isOpen={showForm} onClose={resetForm} title={editingZone ? 'Edit Shipping Zone' : 'New Shipping Zone'}>
+      <Modal isOpen={showForm} onClose={resetForm} title={editingZone ? t('shipping.editZone') : t('shipping.newZone')}>
         <div className="space-y-4">
           <div>
-            <label className="label">Zone Name *</label>
+            <label className="label">{t('shipping.zoneName')} *</label>
             <input className="input" placeholder="e.g. Tbilisi" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
           </div>
           <div>
-            <label className="label">Country</label>
-            <input className="input" placeholder="* for all countries" value={form.country} onChange={(e) => setForm((p) => ({ ...p, country: e.target.value }))} />
+            <label className="label">{t('shipping.country')}</label>
+            <input className="input" placeholder={t('shipping.countryPlaceholder')} value={form.country} onChange={(e) => setForm((p) => ({ ...p, country: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Flat Rate (GEL)</label>
+              <label className="label">{t('shipping.flatRate')}</label>
               <input type="number" step="0.01" className="input" value={form.flatRate} onChange={(e) => setForm((p) => ({ ...p, flatRate: e.target.value }))} />
             </div>
             <div>
-              <label className="label">Free Shipping Over (GEL)</label>
+              <label className="label">{t('shipping.freeShippingOver')}</label>
               <input type="number" step="0.01" className="input" value={form.freeShippingThreshold} onChange={(e) => setForm((p) => ({ ...p, freeShippingThreshold: e.target.value }))} />
             </div>
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.isActive} onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))} className="rounded" />
-            <span className="text-sm">Active</span>
+            <span className="text-sm">{t('common.active')}</span>
           </label>
           <div className="flex gap-2 pt-2">
-            <button onClick={handleSave} className="btn-primary">{editingZone ? 'Update' : 'Create'}</button>
-            <button onClick={resetForm} className="btn-secondary">Cancel</button>
+            <button onClick={handleSave} className="btn-primary">{t('common.save')}</button>
+            <button onClick={resetForm} className="btn-secondary">{t('common.cancel')}</button>
           </div>
         </div>
       </Modal>

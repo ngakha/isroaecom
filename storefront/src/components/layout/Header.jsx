@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, Heart, User, Menu, X, LogOut } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
 import { useCartStore } from '../../store/cartStore';
 import { useWishlistStore } from '../../store/wishlistStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import LiveSearch from './LiveSearch';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -18,6 +20,7 @@ export default function Header() {
   const itemCount = useCartStore((s) => s.itemCount());
   const wishlistCount = useWishlistStore((s) => s.items.length);
   const callRequestMode = useSettingsStore((s) => s.callRequestMode);
+  const { t } = useTranslation();
 
   const handleLogout = async () => {
     await logout();
@@ -46,18 +49,19 @@ export default function Header() {
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-8">
             <Link to="/shop" className="text-sm text-primary-600 hover:text-primary-900 transition-colors">
-              Shop
+              {t('header.shop')}
             </Link>
             <Link to="/shop?status=published&sortBy=created_at&sortOrder=desc" className="text-sm text-primary-600 hover:text-primary-900 transition-colors">
-              New Arrivals
+              {t('header.newArrivals')}
             </Link>
             <Link to="/shop?sale=true" className="text-sm text-primary-600 hover:text-primary-900 transition-colors">
-              Sale
+              {t('header.sale')}
             </Link>
           </nav>
 
           {/* Actions */}
           <div className="flex items-center gap-1">
+            <LanguageSwitcher />
             {/* Search toggle */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
@@ -122,7 +126,7 @@ export default function Header() {
                           className="flex items-center gap-2 px-3 py-2 text-sm text-primary-700 hover:bg-primary-50"
                         >
                           <User size={15} />
-                          My Account
+                          {t('header.myAccount')}
                         </Link>
                         <Link
                           to="/account?tab=orders"
@@ -130,7 +134,7 @@ export default function Header() {
                           className="flex items-center gap-2 px-3 py-2 text-sm text-primary-700 hover:bg-primary-50"
                         >
                           <ShoppingBag size={15} />
-                          Orders
+                          {t('header.orders')}
                         </Link>
                         <Link
                           to="/account?tab=wishlist"
@@ -138,14 +142,14 @@ export default function Header() {
                           className="flex items-center gap-2 px-3 py-2 text-sm text-primary-700 hover:bg-primary-50"
                         >
                           <Heart size={15} />
-                          Wishlist
+                          {t('header.wishlist')}
                         </Link>
                         <button
                           onClick={handleLogout}
                           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-error hover:bg-red-50"
                         >
                           <LogOut size={15} />
-                          Sign Out
+                          {t('header.signOut')}
                         </button>
                       </div>
                     </>
@@ -178,21 +182,21 @@ export default function Header() {
               onClick={() => setMobileOpen(false)}
               className="text-base text-primary-700 hover:text-primary-900 py-1"
             >
-              Shop
+              {t('header.shop')}
             </Link>
             <Link
               to="/shop?sortBy=created_at&sortOrder=desc"
               onClick={() => setMobileOpen(false)}
               className="text-base text-primary-700 hover:text-primary-900 py-1"
             >
-              New Arrivals
+              {t('header.newArrivals')}
             </Link>
             <Link
               to="/shop?sale=true"
               onClick={() => setMobileOpen(false)}
               className="text-base text-primary-700 hover:text-primary-900 py-1"
             >
-              Sale
+              {t('header.sale')}
             </Link>
             {customer && (
               <>
@@ -202,14 +206,14 @@ export default function Header() {
                   onClick={() => setMobileOpen(false)}
                   className="text-base text-primary-700 hover:text-primary-900 py-1"
                 >
-                  My Account
+                  {t('header.myAccount')}
                 </Link>
                 <Link
                   to="/account?tab=wishlist"
                   onClick={() => setMobileOpen(false)}
                   className="text-base text-primary-700 hover:text-primary-900 py-1"
                 >
-                  Wishlist
+                  {t('header.wishlist')}
                 </Link>
               </>
             )}

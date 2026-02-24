@@ -15,19 +15,21 @@ import { useAuthStore } from '../store/authStore';
 import { useWishlistStore } from '../store/wishlistStore';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-
-const TABS = [
-  { id: 'orders', label: 'Orders', icon: <Package size={16} /> },
-  { id: 'addresses', label: 'Addresses', icon: <MapPin size={16} /> },
-  { id: 'wishlist', label: 'Wishlist', icon: <Heart size={16} /> },
-  { id: 'profile', label: 'Profile', icon: <User size={16} /> },
-];
+import { useTranslation } from 'react-i18next';
 
 export default function AccountPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const customer = useAuthStore((s) => s.customer);
   const logout = useAuthStore((s) => s.logout);
+  const { t } = useTranslation();
+
+  const TABS = [
+    { id: 'orders', label: t('account.orders'), icon: <Package size={16} /> },
+    { id: 'addresses', label: t('account.addresses'), icon: <MapPin size={16} /> },
+    { id: 'wishlist', label: t('account.wishlist'), icon: <Heart size={16} /> },
+    { id: 'profile', label: t('account.profile'), icon: <User size={16} /> },
+  ];
 
   const activeTab = searchParams.get('tab') || 'orders';
 
@@ -44,13 +46,13 @@ export default function AccountPage() {
     <div className="max-w-container mx-auto px-4 lg:px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-primary-900">My Account</h1>
+          <h1 className="text-2xl font-semibold text-primary-900">{t('account.myAccount')}</h1>
           <p className="text-sm text-muted mt-0.5">
-            Welcome, {customer.firstName} {customer.lastName}
+            {t('account.welcome', { name: `${customer.firstName} ${customer.lastName}` })}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={async () => { await logout(); navigate('/'); }}>
-          Sign Out
+          {t('account.signOut')}
         </Button>
       </div>
 
@@ -71,6 +73,7 @@ function OrdersTab() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const customer = useAuthStore((s) => s.customer);
+  const { t } = useTranslation();
 
   useEffect(() => {
     api.get('/orders/my-orders', { params: { limit: 50 } })
@@ -93,9 +96,9 @@ function OrdersTab() {
     return (
       <EmptyState
         icon={<ShoppingBag size={32} />}
-        title="No orders yet"
-        description="When you place an order, it will appear here."
-        action={{ label: 'Start Shopping', onClick: () => window.location.href = '/shop' }}
+        title={t('account.noOrders')}
+        description={t('account.noOrdersDesc')}
+        action={{ label: t('account.startShopping'), onClick: () => window.location.href = '/shop' }}
       />
     );
   }
@@ -135,6 +138,7 @@ function AddressesTab() {
   const [showForm, setShowForm] = useState(false);
   const [editAddress, setEditAddress] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
+  const { t } = useTranslation();
 
   const fetchAddresses = () => {
     setLoading(true);
@@ -188,22 +192,22 @@ function AddressesTab() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-primary-700">{addresses.length} saved addresses</h3>
+        <h3 className="text-sm font-medium text-primary-700">{t('account.savedAddresses', { count: addresses.length })}</h3>
         <Button
           variant="secondary"
           size="sm"
           onClick={() => { setEditAddress(null); setShowForm(true); }}
         >
-          + Add Address
+          {t('account.addAddress')}
         </Button>
       </div>
 
       {addresses.length === 0 && !showForm ? (
         <EmptyState
           icon={<MapPin size={32} />}
-          title="No addresses saved"
-          description="Add a shipping address for faster checkout."
-          action={{ label: 'Add Address', onClick: () => setShowForm(true) }}
+          title={t('account.noAddresses')}
+          description={t('account.noAddressesDesc')}
+          action={{ label: t('account.addAddress'), onClick: () => setShowForm(true) }}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -221,7 +225,7 @@ function AddressesTab() {
       <Modal
         isOpen={showForm}
         onClose={() => { setShowForm(false); setEditAddress(null); }}
-        title={editAddress ? 'Edit Address' : 'Add Address'}
+        title={editAddress ? t('account.editAddress') : t('account.addAddress')}
         size="lg"
       >
         <AddressForm
@@ -240,6 +244,7 @@ function WishlistTab() {
   const wishlist = useWishlistStore((s) => s.items);
   const loaded = useWishlistStore((s) => s.loaded);
   const fetchWishlist = useWishlistStore((s) => s.fetch);
+  const { t } = useTranslation();
 
   useEffect(() => { if (!loaded) fetchWishlist(); }, []);
 
@@ -255,9 +260,9 @@ function WishlistTab() {
     return (
       <EmptyState
         icon={<Heart size={32} />}
-        title="Wishlist is empty"
-        description="Save items you love for later."
-        action={{ label: 'Browse Products', onClick: () => window.location.href = '/shop' }}
+        title={t('account.wishlistEmpty')}
+        description={t('account.wishlistEmptyDesc')}
+        action={{ label: t('account.browseProducts'), onClick: () => window.location.href = '/shop' }}
       />
     );
   }
@@ -275,6 +280,7 @@ function WishlistTab() {
 function ProfileTab() {
   const customer = useAuthStore((s) => s.customer);
   const updateCustomer = useAuthStore((s) => s.updateCustomer);
+  const { t } = useTranslation();
 
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -282,11 +288,11 @@ function ProfileTab() {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('account.passwordsMismatch'));
       return;
     }
     if (passwordForm.newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      toast.error(t('account.passwordMinLength'));
       return;
     }
     setChangingPassword(true);
@@ -295,10 +301,10 @@ function ProfileTab() {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
-      toast.success('Password changed successfully');
+      toast.success(t('account.passwordChanged'));
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to change password');
+      toast.error(err.response?.data?.error || t('account.passwordChangeFailed'));
     } finally {
       setChangingPassword(false);
     }
@@ -308,10 +314,10 @@ function ProfileTab() {
     <div className="max-w-lg space-y-8">
       {/* Profile Info */}
       <div>
-        <h3 className="text-lg font-semibold text-primary-900 mb-4">Profile Information</h3>
+        <h3 className="text-lg font-semibold text-primary-900 mb-4">{t('account.profileInfo')}</h3>
         <div className="space-y-3 text-sm">
           <div className="flex items-center">
-            <span className="text-muted w-32">Name</span>
+            <span className="text-muted w-32">{t('account.name')}</span>
             <span className="text-primary-900">{customer.firstName} {customer.lastName}</span>
           </div>
           <div className="flex items-center">
@@ -325,32 +331,32 @@ function ProfileTab() {
       <div>
         <h3 className="text-lg font-semibold text-primary-900 mb-4 flex items-center gap-2">
           <Lock size={18} />
-          Change Password
+          {t('account.changePassword')}
         </h3>
         <form onSubmit={handleChangePassword} className="space-y-4">
           <Input
-            label="Current Password"
+            label={t('account.currentPassword')}
             type="password"
             value={passwordForm.currentPassword}
             onChange={(e) => setPasswordForm((p) => ({ ...p, currentPassword: e.target.value }))}
             required
           />
           <Input
-            label="New Password"
+            label={t('account.newPassword')}
             type="password"
             value={passwordForm.newPassword}
             onChange={(e) => setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))}
             required
           />
           <Input
-            label="Confirm New Password"
+            label={t('account.confirmNewPassword')}
             type="password"
             value={passwordForm.confirmPassword}
             onChange={(e) => setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value }))}
             required
           />
           <Button type="submit" loading={changingPassword}>
-            Update Password
+            {t('account.updatePassword')}
           </Button>
         </form>
       </div>

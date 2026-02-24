@@ -11,6 +11,7 @@ import Skeleton from '../components/ui/Skeleton';
 import { useCartStore } from '../store/cartStore';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 export default function CartPage() {
   const cart = useCartStore((s) => s.cart);
@@ -18,6 +19,8 @@ export default function CartPage() {
   const fetchCart = useCartStore((s) => s.fetchCart);
   const clearCart = useCartStore((s) => s.clearCart);
   const navigate = useNavigate();
+
+  const { t } = useTranslation();
 
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
@@ -41,9 +44,9 @@ export default function CartPage() {
         subtotal,
       });
       setAppliedCoupon(data.data);
-      toast.success('Coupon applied!');
+      toast.success(t('cart.couponApplied'));
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Invalid coupon');
+      toast.error(err.response?.data?.error || t('cart.invalidCoupon'));
     } finally {
       setCouponLoading(false);
     }
@@ -58,7 +61,7 @@ export default function CartPage() {
     await clearCart();
     setAppliedCoupon(null);
     setCouponCode('');
-    toast.success('Cart cleared');
+    toast.success(t('cart.cartCleared'));
   };
 
   if (!loading && items.length === 0) {
@@ -67,9 +70,9 @@ export default function CartPage() {
         <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Cart' }]} />
         <EmptyState
           icon={<ShoppingBag size={32} />}
-          title="Your cart is empty"
-          description="Looks like you haven't added any items yet."
-          action={{ label: 'Start Shopping', onClick: () => navigate('/shop') }}
+          title={t('cart.empty')}
+          description={t('cart.emptyDesc')}
+          action={{ label: t('cart.startShopping'), onClick: () => navigate('/shop') }}
         />
       </div>
     );
@@ -84,14 +87,14 @@ export default function CartPage() {
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-semibold text-primary-900">
-              Shopping Cart ({items.length})
+              {t('cart.title', { count: items.length })}
             </h1>
             <button
               onClick={handleClearCart}
               className="text-sm text-muted hover:text-error flex items-center gap-1 transition-colors"
             >
               <Trash2 size={14} />
-              Clear All
+              {t('cart.clearAll')}
             </button>
           </div>
 
@@ -120,11 +123,11 @@ export default function CartPage() {
         {/* Order Summary */}
         <div className="lg:col-span-1">
           <div className="sticky top-20 bg-surface rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-primary-900 mb-4">Order Summary</h2>
+            <h2 className="text-lg font-semibold text-primary-900 mb-4">{t('cart.orderSummary')}</h2>
 
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-primary-600">Subtotal</span>
+                <span className="text-primary-600">{t('cart.subtotal')}</span>
                 <span className="text-primary-900 font-medium">{subtotal.toFixed(2)} GEL</span>
               </div>
 
@@ -142,14 +145,14 @@ export default function CartPage() {
               )}
 
               <div className="flex items-center justify-between text-primary-600">
-                <span>Shipping</span>
-                <span>Calculated at checkout</span>
+                <span>{t('cart.shipping')}</span>
+                <span>{t('cart.calculatedAtCheckout')}</span>
               </div>
 
               <hr className="border-border" />
 
               <div className="flex items-center justify-between text-lg">
-                <span className="font-semibold text-primary-900">Total</span>
+                <span className="font-semibold text-primary-900">{t('cart.total')}</span>
                 <span className="font-semibold text-primary-900">{total.toFixed(2)} GEL</span>
               </div>
             </div>
@@ -159,7 +162,7 @@ export default function CartPage() {
               <div className="mt-4">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Coupon code"
+                    placeholder={t('cart.couponCode')}
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
                     size="sm"
@@ -171,7 +174,7 @@ export default function CartPage() {
                     onClick={handleApplyCoupon}
                     loading={couponLoading}
                   >
-                    Apply
+                    {t('cart.apply')}
                   </Button>
                 </div>
               </div>
@@ -186,7 +189,7 @@ export default function CartPage() {
                 iconPosition="right"
                 onClick={() => navigate('/checkout', { state: { coupon: appliedCoupon } })}
               >
-                Proceed to Checkout
+                {t('cart.proceedToCheckout')}
               </Button>
             </div>
 
@@ -194,7 +197,7 @@ export default function CartPage() {
               to="/shop"
               className="block text-center text-sm text-muted hover:text-primary-900 mt-4 transition-colors"
             >
-              Continue Shopping
+              {t('cart.continueShopping')}
             </Link>
           </div>
         </div>

@@ -1,32 +1,35 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 import useNotifications from '../hooks/useNotifications';
+import LanguageSwitcher from './LanguageSwitcher';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Tag,
   Image, Settings, LogOut, Menu, X, FolderTree, Truck, CreditCard, Shield, Presentation, PhoneCall
 } from 'lucide-react';
 
-const allNavigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['super_admin', 'shop_manager', 'content_editor'] },
-  { name: 'Products', href: '/products', icon: Package, roles: ['super_admin', 'shop_manager', 'content_editor'] },
-  { name: 'Categories', href: '/categories', icon: FolderTree, roles: ['super_admin', 'shop_manager', 'content_editor'] },
-  { name: 'Orders', href: '/orders', icon: ShoppingCart, roles: ['super_admin', 'shop_manager'] },
-  { name: 'Customers', href: '/customers', icon: Users, roles: ['super_admin', 'shop_manager'] },
-  { name: 'Discounts', href: '/discounts', icon: Tag, roles: ['super_admin', 'shop_manager'] },
-  { name: 'Shipping', href: '/shipping', icon: Truck, roles: ['super_admin', 'shop_manager'] },
-  { name: 'Payments', href: '/payments', icon: CreditCard, roles: ['super_admin', 'shop_manager'] },
-  { name: 'Media', href: '/media', icon: Image, roles: ['super_admin', 'shop_manager', 'content_editor'] },
-  { name: 'Call Requests', href: '/call-requests', icon: PhoneCall, roles: ['super_admin', 'shop_manager'] },
-  { name: 'Hero Banner', href: '/heroes', icon: Presentation, roles: ['super_admin'] },
-  { name: 'Admin Users', href: '/admin-users', icon: Shield, roles: ['super_admin'] },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['super_admin', 'shop_manager'] },
+const navItems = [
+  { key: 'dashboard', href: '/', icon: LayoutDashboard, roles: ['super_admin', 'shop_manager', 'content_editor'] },
+  { key: 'products', href: '/products', icon: Package, roles: ['super_admin', 'shop_manager', 'content_editor'] },
+  { key: 'categories', href: '/categories', icon: FolderTree, roles: ['super_admin', 'shop_manager', 'content_editor'] },
+  { key: 'orders', href: '/orders', icon: ShoppingCart, roles: ['super_admin', 'shop_manager'] },
+  { key: 'customers', href: '/customers', icon: Users, roles: ['super_admin', 'shop_manager'] },
+  { key: 'discounts', href: '/discounts', icon: Tag, roles: ['super_admin', 'shop_manager'] },
+  { key: 'shipping', href: '/shipping', icon: Truck, roles: ['super_admin', 'shop_manager'] },
+  { key: 'payments', href: '/payments', icon: CreditCard, roles: ['super_admin', 'shop_manager'] },
+  { key: 'media', href: '/media', icon: Image, roles: ['super_admin', 'shop_manager', 'content_editor'] },
+  { key: 'callRequests', href: '/call-requests', icon: PhoneCall, roles: ['super_admin', 'shop_manager'] },
+  { key: 'heroBanner', href: '/heroes', icon: Presentation, roles: ['super_admin'] },
+  { key: 'adminUsers', href: '/admin-users', icon: Shield, roles: ['super_admin'] },
+  { key: 'settings', href: '/settings', icon: Settings, roles: ['super_admin', 'shop_manager'] },
 ];
 
 export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuthStore();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   useNotifications();
@@ -47,7 +50,7 @@ export default function AdminLayout({ children }) {
   }, [location.pathname]);
 
   const role = user?.role || '';
-  const navigation = allNavigation.filter((item) => item.roles.includes(role));
+  const navigation = navItems.filter((item) => item.roles.includes(role));
 
   const getBadge = (href) => {
     if (href === '/orders' && pendingOrders > 0) return pendingOrders;
@@ -76,7 +79,7 @@ export default function AdminLayout({ children }) {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
-          <h1 className="text-lg font-bold">PRShark Store</h1>
+          <h1 className="text-lg font-bold">{t('nav.storeName')}</h1>
           <button className="lg:hidden text-gray-400" onClick={() => setSidebarOpen(false)}>
             <X size={20} />
           </button>
@@ -100,7 +103,7 @@ export default function AdminLayout({ children }) {
                 }
               >
                 <item.icon size={18} />
-                <span className="flex-1">{item.name}</span>
+                <span className="flex-1">{t('nav.' + item.key)}</span>
                 {badge > 0 && (
                   <span className="min-w-[20px] h-5 flex items-center justify-center text-xs font-bold bg-red-500 text-white rounded-full px-1.5">
                     {badge > 99 ? '99+' : badge}
@@ -121,7 +124,7 @@ export default function AdminLayout({ children }) {
             <button
               onClick={handleLogout}
               className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800"
-              title="Logout"
+              title={t('nav.logout')}
             >
               <LogOut size={18} />
             </button>
@@ -132,13 +135,16 @@ export default function AdminLayout({ children }) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 lg:px-6">
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6">
           <button
             className="lg:hidden p-2 text-gray-600 hover:text-gray-900 mr-2"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu size={20} />
           </button>
+          <div className="ml-auto">
+            <LanguageSwitcher />
+          </div>
         </header>
 
         {/* Page content */}

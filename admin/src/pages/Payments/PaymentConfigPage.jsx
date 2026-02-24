@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CreditCard } from 'lucide-react';
 import api from '../../services/api';
 
 export default function PaymentConfigPage() {
+  const { t } = useTranslation();
   const [methods, setMethods] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,12 +31,12 @@ export default function PaymentConfigPage() {
     <div className="space-y-4 max-w-3xl">
       <div className="flex items-center gap-2">
         <CreditCard size={24} />
-        <h1 className="text-2xl font-bold">Payment Methods</h1>
+        <h1 className="text-2xl font-bold">{t('payments.title')}</h1>
       </div>
 
       <p className="text-sm text-gray-500">
-        Payment providers are configured in <code className="bg-gray-100 px-1 rounded">server/config/plugins.js</code> and <code className="bg-gray-100 px-1 rounded">.env</code>.
-        Enable or disable providers by editing the config file and restarting the server.
+        {t('payments.configuredIn', { configFile: 'server/config/plugins.js', envFile: '.env' })}{' '}
+        {t('payments.configInstructions')}
       </p>
 
       <div className="space-y-3">
@@ -56,7 +58,7 @@ export default function PaymentConfigPage() {
               <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                 isEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
               }`}>
-                {isEnabled ? 'Enabled' : 'Disabled'}
+                {isEnabled ? t('common.enabled') : t('common.disabled')}
               </span>
             </div>
           );
@@ -64,15 +66,15 @@ export default function PaymentConfigPage() {
       </div>
 
       <div className="card bg-blue-50 border-blue-200">
-        <h3 className="font-semibold text-blue-800 mb-2">Configuration Guide</h3>
+        <h3 className="font-semibold text-blue-800 mb-2">{t('payments.configGuide')}</h3>
         <div className="text-sm text-blue-700 space-y-2">
-          <p>To enable a payment provider:</p>
+          <p>{t('payments.toEnable')}</p>
           <ol className="list-decimal list-inside space-y-1">
-            <li>Set <code className="bg-blue-100 px-1 rounded">enabled: true</code> in <code className="bg-blue-100 px-1 rounded">server/config/plugins.js</code></li>
-            <li>Add API keys to <code className="bg-blue-100 px-1 rounded">.env</code> file</li>
-            <li>Restart the server</li>
+            <li>{t('payments.setIn', { value: 'enabled: true', file: 'server/config/plugins.js' })}</li>
+            <li>{t('payments.addKeysTo', { file: '.env' })}</li>
+            <li>{t('payments.restartServer')}</li>
           </ol>
-          <p className="mt-2">Required environment variables:</p>
+          <p className="mt-2">{t('payments.requiredVars')}</p>
           <ul className="list-disc list-inside space-y-1">
             <li><strong>BOG:</strong> BOG_CLIENT_ID, BOG_CLIENT_SECRET, BOG_CALLBACK_URL</li>
             <li><strong>TBC:</strong> TBC_CLIENT_ID, TBC_CLIENT_SECRET, TBC_CALLBACK_URL</li>

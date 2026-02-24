@@ -6,11 +6,13 @@ import Badge from '../components/ui/Badge';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import Skeleton from '../components/ui/Skeleton';
 import api from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 export default function OrderDetailPage() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     api.get(`/orders/my-orders/${id}`)
@@ -34,9 +36,9 @@ export default function OrderDetailPage() {
   if (!order) {
     return (
       <div className="max-w-container mx-auto px-4 lg:px-6 py-16 text-center">
-        <h1 className="text-2xl font-semibold text-primary-900 mb-2">Order Not Found</h1>
+        <h1 className="text-2xl font-semibold text-primary-900 mb-2">{t('orderDetail.notFound')}</h1>
         <Link to="/account?tab=orders" className="text-sm text-primary-900 font-medium hover:underline">
-          Back to Orders
+          {t('orderDetail.backToOrders')}
         </Link>
       </div>
     );
@@ -58,7 +60,7 @@ export default function OrderDetailPage() {
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-primary-900 transition-colors mb-4"
       >
         <ArrowLeft size={16} />
-        Back to Orders
+        {t('orderDetail.backToOrders')}
       </Link>
 
       <div className="flex items-center gap-4 mb-8">
@@ -74,7 +76,7 @@ export default function OrderDetailPage() {
             <div className="px-4 py-3 border-b border-border bg-surface rounded-t-lg">
               <h3 className="text-sm font-semibold text-primary-900 flex items-center gap-2">
                 <Package size={16} />
-                Items ({order.items?.length || 0})
+                {t('orderDetail.items', { count: order.items?.length || 0 })}
               </h3>
             </div>
             <div className="divide-y divide-border">
@@ -99,7 +101,7 @@ export default function OrderDetailPage() {
               <div className="px-4 py-3 border-b border-border bg-surface rounded-t-lg">
                 <h3 className="text-sm font-semibold text-primary-900 flex items-center gap-2">
                   <Clock size={16} />
-                  Status History
+                  {t('orderDetail.statusHistory')}
                 </h3>
               </div>
               <div className="p-4">
@@ -133,39 +135,39 @@ export default function OrderDetailPage() {
         <div className="space-y-6">
           {/* Order Summary */}
           <div className="border border-border rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-primary-900 mb-3">Summary</h3>
+            <h3 className="text-sm font-semibold text-primary-900 mb-3">{t('orderDetail.summary')}</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted">Subtotal</span>
+                <span className="text-muted">{t('orderDetail.subtotal')}</span>
                 <span>{parseFloat(order.subtotal).toFixed(2)} GEL</span>
               </div>
               {parseFloat(order.shipping_amount) > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-muted">Shipping</span>
+                  <span className="text-muted">{t('orderDetail.shipping')}</span>
                   <span>{parseFloat(order.shipping_amount).toFixed(2)} GEL</span>
                 </div>
               )}
               {parseFloat(order.tax_amount) > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-muted">Tax</span>
+                  <span className="text-muted">{t('orderDetail.tax')}</span>
                   <span>{parseFloat(order.tax_amount).toFixed(2)} GEL</span>
                 </div>
               )}
               {parseFloat(order.discount_amount) > 0 && (
                 <div className="flex justify-between text-success">
-                  <span>Discount</span>
+                  <span>{t('orderDetail.discount')}</span>
                   <span>-{parseFloat(order.discount_amount).toFixed(2)} GEL</span>
                 </div>
               )}
               {order.coupon_code && (
                 <div className="flex justify-between">
-                  <span className="text-muted">Coupon</span>
+                  <span className="text-muted">{t('orderDetail.coupon')}</span>
                   <span className="text-xs bg-primary-100 px-1.5 py-0.5 rounded">{order.coupon_code}</span>
                 </div>
               )}
               <hr className="border-border" />
               <div className="flex justify-between font-semibold text-primary-900">
-                <span>Total</span>
+                <span>{t('orderDetail.total')}</span>
                 <span>{parseFloat(order.total).toFixed(2)} {order.currency || 'GEL'}</span>
               </div>
             </div>
@@ -176,7 +178,7 @@ export default function OrderDetailPage() {
             <div className="border border-border rounded-lg p-4">
               <h3 className="text-sm font-semibold text-primary-900 mb-3 flex items-center gap-2">
                 <MapPin size={14} />
-                Shipping Address
+                {t('orderDetail.shippingAddress')}
               </h3>
               <div className="text-sm text-primary-600 space-y-0.5">
                 <p>{order.shippingAddress.first_name} {order.shippingAddress.last_name}</p>
@@ -192,14 +194,14 @@ export default function OrderDetailPage() {
           <div className="border border-border rounded-lg p-4">
             <h3 className="text-sm font-semibold text-primary-900 mb-3 flex items-center gap-2">
               <CreditCard size={14} />
-              Payment
+              {t('orderDetail.payment')}
             </h3>
             <div className="text-sm text-primary-600 space-y-1">
-              <p>Method: {order.payment_method || 'N/A'}</p>
+              <p>{t('orderDetail.method', { value: order.payment_method || 'N/A' })}</p>
               <p className="text-xs text-muted">
-                Ordered: {new Date(order.created_at).toLocaleDateString('en-US', {
+                {t('orderDetail.ordered', { date: new Date(order.created_at).toLocaleDateString('en-US', {
                   year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                })}
+                }) })}
               </p>
             </div>
           </div>

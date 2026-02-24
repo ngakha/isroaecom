@@ -4,6 +4,7 @@ import { ArrowRight, Truck, Shield, RotateCcw, ChevronRight, Flame } from 'lucid
 import ProductCard from '../components/ecommerce/ProductCard';
 import { ProductCardSkeleton } from '../components/ui/Skeleton';
 import api from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -13,6 +14,7 @@ export default function HomePage() {
   const [heroData, setHeroData] = useState({ slides: [], heroMode: 'carousel' });
   const [activeSlide, setActiveSlide] = useState(0);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,7 +62,7 @@ export default function HomePage() {
               <div className="hidden lg:block w-64 flex-shrink-0">
                 <nav className="bg-white rounded-xl border border-border shadow-sm h-full flex flex-col">
                   <div className="px-5 py-3.5 border-b border-border">
-                    <h3 className="text-sm font-semibold text-primary-900 tracking-wide">Browse Categories</h3>
+                    <h3 className="text-sm font-semibold text-primary-900 tracking-wide">{t('home.browseCategories')}</h3>
                   </div>
                   <div className="flex-1 py-1">
                     {loading ? (
@@ -103,7 +105,7 @@ export default function HomePage() {
                     to="/shop"
                     className="flex items-center justify-center gap-1.5 px-5 py-3 text-sm font-medium text-primary-900 bg-primary-50/60 hover:bg-primary-100 transition-colors rounded-b-xl border-t border-border mt-auto"
                   >
-                    <span>View All</span>
+                    <span>{t('home.viewAll')}</span>
                     <ArrowRight size={14} />
                   </Link>
                 </nav>
@@ -182,19 +184,17 @@ export default function HomePage() {
                 /* Fallback: static hero when no slides configured */
                 <div className="flex flex-col justify-center h-full bg-surface px-8 lg:px-12 py-16">
                   <h1 className="text-3xl lg:text-5xl font-semibold text-primary-900 tracking-tight leading-tight">
-                    Designed for
-                    <br />
-                    modern living.
+                    {t('home.heroDescription')}
                   </h1>
                   <p className="mt-4 text-base lg:text-lg text-primary-500 max-w-lg">
-                    Curated collection of premium products that combine quality craftsmanship with minimal aesthetics.
+                    {t('home.heroSubtext')}
                   </p>
                   <div className="mt-8 flex items-center gap-4">
                     <Link
                       to="/shop"
                       className="inline-flex items-center gap-2 bg-primary-900 text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
                     >
-                      Shop Now
+                      {t('home.shopNow')}
                       <ArrowRight size={16} />
                     </Link>
                   </div>
@@ -208,9 +208,9 @@ export default function HomePage() {
       {/* Featured Products */}
       <section className="max-w-container mx-auto px-4 lg:px-6 py-16">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-semibold text-primary-900">Featured</h2>
+          <h2 className="text-2xl font-semibold text-primary-900">{t('home.featured')}</h2>
           <Link to="/shop" className="text-sm text-muted hover:text-primary-900 flex items-center gap-1 transition-colors">
-            View All <ArrowRight size={14} />
+            {t('home.viewAll')} <ArrowRight size={14} />
           </Link>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -238,15 +238,15 @@ export default function HomePage() {
                   <Flame size={22} className="text-yellow-200" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">Hot Deals</h2>
-                  <p className="text-sm text-white/70 mt-0.5">Limited time offers — don't miss out</p>
+                  <h2 className="text-2xl font-bold text-white tracking-tight">{t('home.hotDeals')}</h2>
+                  <p className="text-sm text-white/70 mt-0.5">{t('home.hotDealsSubtitle')}</p>
                 </div>
               </div>
               <Link
                 to="/shop?onSale=true"
                 className="hidden sm:inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-white/25 transition-colors border border-white/20"
               >
-                View All Deals <ArrowRight size={14} />
+                {t('home.viewAllDeals')} <ArrowRight size={14} />
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -262,7 +262,7 @@ export default function HomePage() {
               to="/shop?onSale=true"
               className="sm:hidden flex items-center justify-center gap-2 mt-6 bg-white/15 backdrop-blur-sm text-white px-5 py-3 rounded-lg text-sm font-semibold hover:bg-white/25 transition-colors border border-white/20"
             >
-              View All Deals <ArrowRight size={14} />
+              {t('home.viewAllDeals')} <ArrowRight size={14} />
             </Link>
           </div>
         </section>
@@ -272,9 +272,9 @@ export default function HomePage() {
       <section className="bg-surface">
         <div className="max-w-container mx-auto px-4 lg:px-6 py-16">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-semibold text-primary-900">New Arrivals</h2>
+            <h2 className="text-2xl font-semibold text-primary-900">{t('home.newArrivals')}</h2>
             <Link to="/shop?sortBy=created_at&sortOrder=desc" className="text-sm text-muted hover:text-primary-900 flex items-center gap-1 transition-colors">
-              View All <ArrowRight size={14} />
+              {t('home.viewAll')} <ArrowRight size={14} />
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -295,8 +295,8 @@ export default function HomePage() {
               <Truck size={20} className="text-primary-900" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-primary-900">Free Shipping</h3>
-              <p className="text-sm text-muted mt-0.5">On orders over 100 GEL</p>
+              <h3 className="text-sm font-semibold text-primary-900">{t('home.freeShipping')}</h3>
+              <p className="text-sm text-muted mt-0.5">{t('home.freeShippingDesc')}</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
@@ -304,8 +304,8 @@ export default function HomePage() {
               <Shield size={20} className="text-primary-900" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-primary-900">Secure Payment</h3>
-              <p className="text-sm text-muted mt-0.5">100% secure checkout</p>
+              <h3 className="text-sm font-semibold text-primary-900">{t('home.securePayment')}</h3>
+              <p className="text-sm text-muted mt-0.5">{t('home.securePaymentDesc')}</p>
             </div>
           </div>
           <div className="flex items-start gap-4">
@@ -313,8 +313,8 @@ export default function HomePage() {
               <RotateCcw size={20} className="text-primary-900" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-primary-900">Easy Returns</h3>
-              <p className="text-sm text-muted mt-0.5">30-day return policy</p>
+              <h3 className="text-sm font-semibold text-primary-900">{t('home.easyReturns')}</h3>
+              <p className="text-sm text-muted mt-0.5">{t('home.easyReturnsDesc')}</p>
             </div>
           </div>
         </div>

@@ -1,23 +1,25 @@
 import Badge from '../ui/Badge';
+import { useTranslation } from 'react-i18next';
 
-const statusConfig = {
-  pending: { label: 'Pending', variant: 'warning' },
-  confirmed: { label: 'Confirmed', variant: 'info' },
-  processing: { label: 'Processing', variant: 'info' },
-  shipped: { label: 'Shipped', variant: 'info' },
-  delivered: { label: 'Delivered', variant: 'success' },
-  completed: { label: 'Completed', variant: 'success' },
-  cancelled: { label: 'Cancelled', variant: 'error' },
-  refund_requested: { label: 'Refund Requested', variant: 'warning' },
-  refunded: { label: 'Refunded', variant: 'neutral' },
+const variantMap = {
+  pending: 'warning',
+  confirmed: 'info',
+  processing: 'info',
+  shipped: 'info',
+  delivered: 'success',
+  completed: 'success',
+  cancelled: 'error',
+  refund_requested: 'warning',
+  refunded: 'neutral',
 };
 
 export default function OrderStatusBadge({ status }) {
-  const config = statusConfig[status] || { label: status, variant: 'neutral' };
+  const { t } = useTranslation();
+  const variant = variantMap[status] || 'neutral';
 
   return (
-    <Badge variant={config.variant} dot size="md">
-      {config.label}
+    <Badge variant={variant} dot size="md">
+      {t(`status.${status}`, status)}
     </Badge>
   );
 }

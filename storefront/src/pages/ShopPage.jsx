@@ -10,15 +10,7 @@ import Breadcrumb from '../components/ui/Breadcrumb';
 import EmptyState from '../components/ecommerce/EmptyState';
 import { Search, ShoppingBag } from 'lucide-react';
 import api from '../services/api';
-
-const SORT_OPTIONS = [
-  { value: 'created_at:desc', label: 'Newest First' },
-  { value: 'created_at:asc', label: 'Oldest First' },
-  { value: 'price:asc', label: 'Price: Low to High' },
-  { value: 'price:desc', label: 'Price: High to Low' },
-  { value: 'name:asc', label: 'Name: A-Z' },
-  { value: 'name:desc', label: 'Name: Z-A' },
-];
+import { useTranslation } from 'react-i18next';
 
 export default function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -27,6 +19,16 @@ export default function ShopPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const { t } = useTranslation();
+
+  const SORT_OPTIONS = [
+    { value: 'created_at:desc', label: t('shop.newestFirst') },
+    { value: 'created_at:asc', label: t('shop.oldestFirst') },
+    { value: 'price:asc', label: t('shop.priceLowHigh') },
+    { value: 'price:desc', label: t('shop.priceHighLow') },
+    { value: 'name:asc', label: t('shop.nameAZ') },
+    { value: 'name:desc', label: t('shop.nameZA') },
+  ];
 
   const currentSearch = searchParams.get('search') || '';
   const currentCategory = searchParams.get('categoryId') || '';
@@ -101,12 +103,12 @@ export default function ShopPage() {
       <div className="flex flex-col lg:flex-row gap-8 pb-16">
         {/* Sidebar filters - desktop */}
         <aside className="hidden lg:block w-56 flex-shrink-0">
-          <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-4">Filters</h2>
+          <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-4">{t('shop.filters')}</h2>
 
           {/* Search */}
           <div className="mb-6">
             <Input
-              placeholder="Search..."
+              placeholder={t('shop.search')}
               value={currentSearch}
               onChange={(e) => updateParam('search', e.target.value)}
               prefix={<Search size={16} />}
@@ -116,7 +118,7 @@ export default function ShopPage() {
 
           {/* Categories */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-primary-700 mb-2">Categories</h3>
+            <h3 className="text-sm font-medium text-primary-700 mb-2">{t('shop.categories')}</h3>
             <div className="space-y-1">
               <button
                 onClick={() => updateParam('categoryId', '')}
@@ -124,7 +126,7 @@ export default function ShopPage() {
                   !currentCategory ? 'bg-primary-100 text-primary-900 font-medium' : 'text-primary-600 hover:text-primary-900 hover:bg-primary-50'
                 }`}
               >
-                All Products
+                {t('shop.allProducts')}
               </button>
               {categories.map((cat) => (
                 <button
@@ -146,7 +148,7 @@ export default function ShopPage() {
               onClick={clearFilters}
               className="text-sm text-muted hover:text-primary-900 flex items-center gap-1"
             >
-              <X size={14} /> Clear filters
+              <X size={14} /> {t('shop.clearFilters')}
             </button>
           )}
         </aside>
@@ -157,7 +159,7 @@ export default function ShopPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold text-primary-900">
-                {currentOnSale ? 'Sale' : selectedCategory ? selectedCategory.name : 'All Products'}
+                {currentOnSale ? t('shop.sale') : selectedCategory ? selectedCategory.name : t('shop.allProducts')}
               </h1>
               {!loading && (
                 <span className="text-sm text-muted">({pagination.total})</span>
@@ -184,7 +186,7 @@ export default function ShopPage() {
           {filtersOpen && (
             <div className="lg:hidden mb-6 p-4 bg-surface rounded-lg space-y-4">
               <Input
-                placeholder="Search..."
+                placeholder={t('shop.search')}
                 value={currentSearch}
                 onChange={(e) => updateParam('search', e.target.value)}
                 prefix={<Search size={16} />}
@@ -193,7 +195,7 @@ export default function ShopPage() {
               <Select
                 label="Category"
                 options={[
-                  { value: '', label: 'All Products' },
+                  { value: '', label: t('shop.allProducts') },
                   ...categories.map((c) => ({ value: c.id, label: c.name })),
                 ]}
                 value={currentCategory}
@@ -201,7 +203,7 @@ export default function ShopPage() {
               />
               {hasActiveFilters && (
                 <button onClick={clearFilters} className="text-sm text-muted hover:text-primary-900 flex items-center gap-1">
-                  <X size={14} /> Clear filters
+                  <X size={14} /> {t('shop.clearFilters')}
                 </button>
               )}
             </div>
@@ -218,7 +220,7 @@ export default function ShopPage() {
               )}
               {currentOnSale && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 text-xs rounded-md">
-                  On Sale
+                  {t('shop.onSale')}
                   <button onClick={() => updateParam('onSale', '')}><X size={12} /></button>
                 </span>
               )}
@@ -241,9 +243,9 @@ export default function ShopPage() {
           ) : products.length === 0 ? (
             <EmptyState
               icon={<ShoppingBag size={32} />}
-              title="No products found"
-              description="Try changing your search or filter criteria."
-              action={hasActiveFilters ? { label: 'Clear Filters', onClick: clearFilters } : undefined}
+              title={t('shop.noProducts')}
+              description={t('shop.noProductsHint')}
+              action={hasActiveFilters ? { label: t('shop.clearFilters'), onClick: clearFilters } : undefined}
             />
           ) : (
             <>
