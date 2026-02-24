@@ -20,6 +20,13 @@ router.post('/',
   controller.create
 );
 
+router.post('/create-expanded',
+  authenticate,
+  authorize('shop_manager', 'content_editor'),
+  validate(schemas.createExpandedProduct),
+  controller.createExpanded
+);
+
 router.put('/:id',
   authenticate,
   authorize('shop_manager', 'content_editor'),

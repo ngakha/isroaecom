@@ -1,15 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
 import { clsx } from 'clsx';
 
-export default function ProductGallery({ images = [], activeImageIndex }) {
+export default function ProductGallery({ images = [] }) {
   const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    if (activeImageIndex != null && activeImageIndex >= 0 && activeImageIndex < images.length) {
-      setActiveIndex(activeImageIndex);
-    }
-  }, [activeImageIndex, images.length]);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   if (!images.length) {

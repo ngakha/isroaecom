@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Heart, Truck, Shield, Package, PhoneCall } from 'lucide-react';
 import ProductGallery from '../components/ecommerce/ProductGallery';
 import PriceDisplay from '../components/ecommerce/PriceDisplay';
@@ -34,6 +34,7 @@ export default function ProductPage() {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [relatedLoading, setRelatedLoading] = useState(true);
 
+  const navigate = useNavigate();
   const addItem = useCartStore((s) => s.addItem);
   const customer = useAuthStore((s) => s.customer);
 
@@ -80,10 +81,6 @@ export default function ProductPage() {
       </div>
     );
   }
-
-  const variantImageIndex = selectedVariant?.image_id
-    ? (product.images || []).findIndex((img) => img.id === selectedVariant.image_id)
-    : undefined;
 
   const activePrice = selectedVariant
     ? { price: selectedVariant.price, salePrice: selectedVariant.sale_price }
@@ -142,7 +139,7 @@ export default function ProductPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14 pb-10">
         {/* Gallery - LEFT */}
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <ProductGallery images={product.images || []} activeImageIndex={variantImageIndex >= 0 ? variantImageIndex : undefined} />
+          <ProductGallery images={product.images || []} />
         </div>
 
         {/* Info - RIGHT */}
@@ -192,20 +189,33 @@ export default function ProductPage() {
             <div className="mt-6">
               <span className="text-sm font-medium text-primary-900">Options:</span>
               <div className="flex flex-wrap gap-2 mt-2">
-                {product.variants.filter((v) => v.is_active).map((variant) => (
-                  <button
-                    key={variant.id}
-                    onClick={() => setSelectedVariant(selectedVariant?.id === variant.id ? null : variant)}
-                    className={clsx(
-                      'px-4 py-2 text-sm border rounded-md transition-all',
-                      selectedVariant?.id === variant.id
-                        ? 'border-primary-900 bg-primary-900 text-white'
-                        : 'border-primary-300 text-primary-700 hover:border-primary-900'
-                    )}
-                  >
-                    {variant.name}
-                  </button>
-                ))}
+                {product.variants.filter((v) => v.is_active).map((variant) => {
+                  const isSelf = !variant.url;
+                  const isActive = isSelf
+                    ? !selectedVariant
+                    : selectedVariant?.id === variant.id;
+
+                  return (
+                    <button
+                      key={variant.id}
+                      onClick={() => {
+                        if (variant.url) {
+                          navigate(variant.url);
+                        } else {
+                          setSelectedVariant(selectedVariant?.id === variant.id ? null : variant);
+                        }
+                      }}
+                      className={clsx(
+                        'px-4 py-2 text-sm border rounded-md transition-all',
+                        isActive
+                          ? 'border-primary-900 bg-primary-900 text-white'
+                          : 'border-primary-300 text-primary-700 hover:border-primary-900'
+                      )}
+                    >
+                      {variant.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

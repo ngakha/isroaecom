@@ -19,6 +19,7 @@ export default function ProductFormPage() {
   const [variants, setVariants] = useState([]);
   const [attributes, setAttributes] = useState([]);
   const [dragIdx, setDragIdx] = useState(null);
+  const [expandVariants, setExpandVariants] = useState(false);
   // Track which fields were manually edited (don't auto-fill those)
   const [manualEdits, setManualEdits] = useState({ sku: false, metaTitle: false, metaDescription: false });
   const [form, setForm] = useState({
@@ -198,7 +199,7 @@ export default function ProductFormPage() {
 
   // ─── Variants ───────────────────────────────────
 
-  const [variantForm, setVariantForm] = useState({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0', imageId: null });
+  const [variantForm, setVariantForm] = useState({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0', url: '' });
   const [editingVariant, setEditingVariant] = useState(null);
   const [showVariantForm, setShowVariantForm] = useState(false);
 
@@ -214,9 +215,8 @@ export default function ProductFormPage() {
       price: parseFloat(variantForm.price),
       salePrice: variantForm.salePrice ? parseFloat(variantForm.salePrice) : undefined,
       stockQuantity: parseInt(variantForm.stockQuantity) || 0,
-      imageId: variantForm.imageId || null,
+      url: variantForm.url || undefined,
     };
-    console.log('[Variant payload]', JSON.stringify(payload));
 
     if (isEdit) {
       try {
@@ -240,14 +240,14 @@ export default function ProductFormPage() {
     } else {
       // Create mode: store locally
       if (editingVariant) {
-        setVariants((prev) => prev.map((v) => v._tempId === editingVariant ? { ...v, ...payload, sale_price: payload.salePrice, stock_quantity: payload.stockQuantity, image_id: payload.imageId } : v));
+        setVariants((prev) => prev.map((v) => v._tempId === editingVariant ? { ...v, ...payload, sale_price: payload.salePrice, stock_quantity: payload.stockQuantity, url: payload.url } : v));
         toast.success('Variant updated');
       } else {
-        setVariants((prev) => [...prev, { ...payload, sale_price: payload.salePrice, stock_quantity: payload.stockQuantity, image_id: payload.imageId, _tempId: Date.now() }]);
+        setVariants((prev) => [...prev, { ...payload, sale_price: payload.salePrice, stock_quantity: payload.stockQuantity, url: payload.url, _tempId: Date.now() }]);
         toast.success('Variant added');
       }
     }
-    setVariantForm({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0', imageId: null });
+    setVariantForm({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0', url: '' });
     setEditingVariant(null);
     setShowVariantForm(false);
   };
@@ -259,7 +259,7 @@ export default function ProductFormPage() {
       price: String(variant.price),
       salePrice: String(variant.sale_price || ''),
       stockQuantity: String(variant.stock_quantity || '0'),
-      imageId: variant.image_id || null,
+      url: variant.url || '',
     });
     setEditingVariant(variant.id || variant._tempId);
     setShowVariantForm(true);
@@ -352,47 +352,75 @@ export default function ProductFormPage() {
     setSaving(true);
 
     try {
-      const payload = {
-        ...form,
-        price: parseFloat(form.price),
-        salePrice: form.salePrice ? parseFloat(form.salePrice) : undefined,
-        costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined,
-        taxRate: parseFloat(form.taxRate),
-        stockQuantity: parseInt(form.stockQuantity),
-        lowStockThreshold: parseInt(form.lowStockThreshold),
-        weight: form.weight ? parseFloat(form.weight) : undefined,
-      };
-
-      if (isEdit) {
-        await api.put(`/products/${id}`, payload);
-        toast.success('Product updated');
-      } else {
-        const res = await api.post('/products', payload);
-        const newProductId = res.data.data.id;
-        // Save pending media
-        if (pendingMedia.length > 0) {
-          const mediaIds = pendingMedia.map((m) => m.id);
-          await api.post(`/products/${newProductId}/images`, { mediaIds });
-        }
-        // Save pending variants
-        for (const v of variants) {
-          await api.post(`/products/${newProductId}/variants`, {
+      if (!isEdit && expandVariants && variants.length > 0) {
+        // ─── Expanded: create separate product per variant ───
+        const expandedPayload = {
+          name: form.name,
+          description: form.description || undefined,
+          costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined,
+          taxRate: parseFloat(form.taxRate),
+          lowStockThreshold: parseInt(form.lowStockThreshold),
+          trackInventory: form.trackInventory,
+          weight: form.weight ? parseFloat(form.weight) : undefined,
+          status: form.status,
+          metaTitle: form.metaTitle || undefined,
+          metaDescription: form.metaDescription || undefined,
+          categoryIds: form.categoryIds.length ? form.categoryIds : undefined,
+          mediaIds: pendingMedia.length ? pendingMedia.map((m) => m.id) : undefined,
+          attributes: attributes.length
+            ? attributes.map((a) => ({ key: a.key, value: a.value }))
+            : undefined,
+          variants: variants.map((v) => ({
             name: v.name,
             sku: v.sku || undefined,
             price: parseFloat(v.price),
             salePrice: v.sale_price ? parseFloat(v.sale_price) : undefined,
             stockQuantity: parseInt(v.stock_quantity) || 0,
-            imageId: v.image_id || null,
-          });
+          })),
+        };
+        await api.post('/products/create-expanded', expandedPayload);
+        toast.success(`${variants.length} products created from variants`);
+      } else {
+        // ─── Normal create/update ───
+        const payload = {
+          ...form,
+          price: parseFloat(form.price),
+          salePrice: form.salePrice ? parseFloat(form.salePrice) : undefined,
+          costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined,
+          taxRate: parseFloat(form.taxRate),
+          stockQuantity: parseInt(form.stockQuantity),
+          lowStockThreshold: parseInt(form.lowStockThreshold),
+          weight: form.weight ? parseFloat(form.weight) : undefined,
+        };
+
+        if (isEdit) {
+          await api.put(`/products/${id}`, payload);
+          toast.success('Product updated');
+        } else {
+          const res = await api.post('/products', payload);
+          const newProductId = res.data.data.id;
+          if (pendingMedia.length > 0) {
+            const mediaIds = pendingMedia.map((m) => m.id);
+            await api.post(`/products/${newProductId}/images`, { mediaIds });
+          }
+          for (const v of variants) {
+            await api.post(`/products/${newProductId}/variants`, {
+              name: v.name,
+              sku: v.sku || undefined,
+              price: parseFloat(v.price),
+              salePrice: v.sale_price ? parseFloat(v.sale_price) : undefined,
+              stockQuantity: parseInt(v.stock_quantity) || 0,
+              url: v.url || undefined,
+            });
+          }
+          for (const a of attributes) {
+            await api.post(`/products/${newProductId}/attributes`, {
+              key: a.key,
+              value: a.value,
+            });
+          }
+          toast.success('Product created');
         }
-        // Save pending attributes
-        for (const a of attributes) {
-          await api.post(`/products/${newProductId}/attributes`, {
-            key: a.key,
-            value: a.value,
-          });
-        }
-        toast.success('Product created');
       }
       navigate('/products');
     } catch (err) {
@@ -539,23 +567,33 @@ export default function ProductFormPage() {
                 <h3 className="font-semibold">Variants</h3>
                 <button
                   type="button"
-                  onClick={() => { setShowVariantForm(true); setEditingVariant(null); setVariantForm({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0', imageId: null }); }}
+                  onClick={() => { setShowVariantForm(true); setEditingVariant(null); setVariantForm({ name: '', sku: '', price: '', salePrice: '', stockQuantity: '0', url: '' }); }}
                   className="btn-secondary text-xs flex items-center gap-1"
                 >
                   <Plus size={14} /> Add Variant
                 </button>
               </div>
 
+              {!isEdit && variants.length > 0 && (
+                <label className="flex items-center gap-3 cursor-pointer bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={expandVariants}
+                    onChange={(e) => setExpandVariants(e.target.checked)}
+                    className="rounded"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-amber-900">Create separate product for each variant</span>
+                    <p className="text-xs text-amber-600 mt-0.5">Each variant becomes its own product page with cross-links.</p>
+                  </div>
+                </label>
+              )}
+
               {variants.length > 0 && (
                 <div className="divide-y">
-                  {variants.map((v) => {
-                    const variantImg = v.image_id ? currentImages.find((img) => img.id === v.image_id) : null;
-                    return (
+                  {variants.map((v) => (
                     <div key={v.id || v._tempId} className="flex items-center justify-between py-3">
                       <div className="flex items-center gap-3">
-                        {variantImg && (
-                          <img src={variantImg.thumbnail_url || variantImg.url} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" />
-                        )}
                         <div>
                           <p className="font-medium text-sm">{v.name}</p>
                           <p className="text-xs text-gray-500">
@@ -575,8 +613,7 @@ export default function ProductFormPage() {
                         </button>
                       </div>
                     </div>
-                    );
-                  })}
+                  ))}
                 </div>
               )}
 
@@ -604,34 +641,6 @@ export default function ProductFormPage() {
                       <input type="number" className="input" value={variantForm.stockQuantity} onChange={(e) => setVariantForm((p) => ({ ...p, stockQuantity: e.target.value }))} />
                     </div>
                   </div>
-                  {currentImages.length > 0 && (
-                    <div>
-                      <label className="label">Variant Image</label>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        <button
-                          type="button"
-                          onClick={() => setVariantForm((p) => ({ ...p, imageId: null }))}
-                          className={`w-14 h-14 rounded-md border-2 flex items-center justify-center text-xs text-gray-400 transition-colors ${
-                            !variantForm.imageId ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          None
-                        </button>
-                        {currentImages.map((img) => (
-                          <button
-                            key={img.id}
-                            type="button"
-                            onClick={() => setVariantForm((p) => ({ ...p, imageId: img.id }))}
-                            className={`w-14 h-14 rounded-md border-2 overflow-hidden transition-colors ${
-                              variantForm.imageId === img.id ? 'border-primary-500 ring-1 ring-primary-500' : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                          >
-                            <img src={img.thumbnail_url || img.url} alt="" className="w-full h-full object-cover" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   <div className="flex gap-2">
                     <button type="button" onClick={handleSaveVariant} className="btn-primary text-xs">
                       {editingVariant ? 'Update' : 'Add'}
@@ -764,7 +773,7 @@ export default function ProductFormPage() {
         <div className="flex gap-3">
           <button type="submit" className="btn-primary" disabled={saving}>
             <Save size={16} className="mr-2" />
-            {saving ? 'Saving...' : (isEdit ? 'Update Product' : 'Create Product')}
+            {saving ? 'Saving...' : expandVariants && variants.length > 0 && !isEdit ? `Create ${variants.length} Products` : (isEdit ? 'Update Product' : 'Create Product')}
           </button>
           <button type="button" className="btn-secondary" onClick={() => navigate('/products')}>Cancel</button>
         </div>

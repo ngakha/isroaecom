@@ -57,6 +57,15 @@ class ProductsController {
     }
   }
 
+  async createExpanded(req, res, next) {
+    try {
+      const products = await productsService.createWithVariantExpansion(req.body);
+      res.status(201).json({ data: products });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async update(req, res, next) {
     try {
       const product = await productsService.update(req.params.id, req.body);

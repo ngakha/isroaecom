@@ -40,7 +40,7 @@ const createVariant = Joi.object({
   salePrice: Joi.number().min(0).optional(),
   stockQuantity: Joi.number().integer().min(0).optional(),
   attributes: Joi.object().optional(),
-  imageId: Joi.string().uuid().allow(null).optional(),
+  url: Joi.string().max(500).allow('', null).optional(),
 });
 
 const updateVariant = createVariant.fork(['name', 'price'], (schema) => schema.optional());
@@ -74,6 +74,32 @@ const reorderImages = Joi.object({
   imageIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
 });
 
+const createExpandedProduct = Joi.object({
+  name: Joi.string().min(1).max(500).required(),
+  description: Joi.string().allow('', null).max(10000).optional(),
+  costPrice: Joi.number().min(0).optional(),
+  taxRate: Joi.number().min(0).max(100).optional(),
+  lowStockThreshold: Joi.number().integer().min(0).optional(),
+  trackInventory: Joi.boolean().optional(),
+  weight: Joi.number().min(0).optional(),
+  status: Joi.string().valid('draft', 'published', 'archived').optional(),
+  metaTitle: Joi.string().allow('', null).max(200).optional(),
+  metaDescription: Joi.string().allow('', null).max(500).optional(),
+  categoryIds: Joi.array().items(Joi.string().uuid()).optional(),
+  mediaIds: Joi.array().items(Joi.string().uuid()).optional(),
+  attributes: Joi.array().items(Joi.object({
+    key: Joi.string().min(1).max(100).required(),
+    value: Joi.string().min(1).max(2000).required(),
+  })).optional(),
+  variants: Joi.array().items(Joi.object({
+    name: Joi.string().min(1).max(200).required(),
+    sku: Joi.string().max(100).optional(),
+    price: Joi.number().min(0).required(),
+    salePrice: Joi.number().min(0).optional(),
+    stockQuantity: Joi.number().integer().min(0).optional(),
+  })).min(1).required(),
+});
+
 module.exports = {
   createProduct,
   updateProduct,
@@ -86,4 +112,5 @@ module.exports = {
   listQuery,
   addImages,
   reorderImages,
+  createExpandedProduct,
 };

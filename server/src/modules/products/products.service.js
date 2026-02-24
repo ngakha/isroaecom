@@ -280,6 +280,117 @@ class ProductsService {
   }
 
   /**
+   * Create separate products for each variant (expanded creation)
+   */
+  async createWithVariantExpansion(data) {
+    const db = this.db();
+    const variantGroupId = uuid();
+    const variants = data.variants;
+
+    return await db.transaction(async (trx) => {
+      const createdProducts = [];
+
+      // Phase 1: Create one product per variant
+      for (const varDef of variants) {
+        const productName = `${data.name} - ${varDef.name}`;
+        const id = uuid();
+        const slug = await generateUniqueSlug(productName, 'products');
+        const sku = varDef.sku || await this.generateSku(productName);
+        const metaTitle = productName;
+        const metaDescription = data.metaDescription
+          || (data.description ? data.description.substring(0, 160) : null);
+
+        const [product] = await trx('products')
+          .insert({
+            id,
+            name: productName,
+            slug,
+            description: data.description || null,
+            sku,
+            price: varDef.price,
+            sale_price: varDef.salePrice || null,
+            cost_price: data.costPrice || null,
+            tax_rate: data.taxRate || 0,
+            stock_quantity: varDef.stockQuantity || 0,
+            low_stock_threshold: data.lowStockThreshold || 5,
+            track_inventory: data.trackInventory !== false,
+            weight: data.weight || null,
+            status: data.status || 'draft',
+            meta_title: metaTitle,
+            meta_description: metaDescription,
+            variant_group_id: variantGroupId,
+            created_at: new Date(),
+            updated_at: new Date(),
+          })
+          .returning('*');
+
+        // Attach categories
+        if (data.categoryIds?.length) {
+          await trx('product_categories').insert(
+            data.categoryIds.map((catId) => ({
+              product_id: id,
+              category_id: catId,
+            }))
+          );
+        }
+
+        // Attach attributes
+        if (data.attributes?.length) {
+          for (const attr of data.attributes) {
+            await trx('product_attributes').insert({
+              id: uuid(),
+              product_id: id,
+              key: attr.key,
+              value: attr.value,
+            });
+          }
+        }
+
+        // Attach images from media
+        if (data.mediaIds?.length) {
+          const mediaService = require('../media/media.service');
+          let sortOrder = 0;
+          for (const mediaId of data.mediaIds) {
+            const media = await mediaService.findById(mediaId);
+            await trx('product_images').insert({
+              id: uuid(),
+              product_id: id,
+              media_id: mediaId,
+              url: media.url,
+              thumbnail_url: media.thumbnail_url,
+              sort_order: sortOrder++,
+            });
+          }
+        }
+
+        createdProducts.push({ product, variantDef: varDef });
+      }
+
+      // Phase 2: Cross-link variants on each product
+      for (const { product: currentProduct } of createdProducts) {
+        for (const { product: targetProduct, variantDef: targetVar } of createdProducts) {
+          const isSelf = currentProduct.id === targetProduct.id;
+          await trx('product_variants').insert({
+            id: uuid(),
+            product_id: currentProduct.id,
+            name: targetVar.name,
+            sku: targetVar.sku || null,
+            price: targetVar.price,
+            sale_price: targetVar.salePrice || null,
+            stock_quantity: targetVar.stockQuantity || 0,
+            attributes: JSON.stringify({}),
+            url: isSelf ? null : `/product/${targetProduct.slug}`,
+            is_active: true,
+            created_at: new Date(),
+          });
+        }
+      }
+
+      return createdProducts.map((cp) => cp.product);
+    });
+  }
+
+  /**
    * Update product
    */
   async update(id, data) {
@@ -360,7 +471,7 @@ class ProductsService {
         sale_price: data.salePrice || null,
         stock_quantity: data.stockQuantity || 0,
         attributes: JSON.stringify(data.attributes || {}),
-        image_id: data.imageId || null,
+        url: data.url || null,
         is_active: true,
         created_at: new Date(),
       })
@@ -380,7 +491,7 @@ class ProductsService {
     if (data.stockQuantity !== undefined) updateData.stock_quantity = data.stockQuantity;
     if (data.attributes !== undefined) updateData.attributes = JSON.stringify(data.attributes);
     if (data.isActive !== undefined) updateData.is_active = data.isActive;
-    if (data.imageId !== undefined) updateData.image_id = data.imageId || null;
+    if (data.url !== undefined) updateData.url = data.url || null;
 
     const [variant] = await db('product_variants')
       .where({ id: variantId })
