@@ -366,7 +366,6 @@ export default function ProductFormPage() {
           metaTitle: form.metaTitle || undefined,
           metaDescription: form.metaDescription || undefined,
           categoryIds: form.categoryIds.length ? form.categoryIds : undefined,
-          mediaIds: pendingMedia.length ? pendingMedia.map((m) => m.id) : undefined,
           attributes: attributes.length
             ? attributes.map((a) => ({ key: a.key, value: a.value }))
             : undefined,

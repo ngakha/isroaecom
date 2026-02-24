@@ -86,7 +86,6 @@ const createExpandedProduct = Joi.object({
   metaTitle: Joi.string().allow('', null).max(200).optional(),
   metaDescription: Joi.string().allow('', null).max(500).optional(),
   categoryIds: Joi.array().items(Joi.string().uuid()).optional(),
-  mediaIds: Joi.array().items(Joi.string().uuid()).optional(),
   attributes: Joi.array().items(Joi.object({
     key: Joi.string().min(1).max(100).required(),
     value: Joi.string().min(1).max(2000).required(),

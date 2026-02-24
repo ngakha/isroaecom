@@ -346,23 +346,6 @@ class ProductsService {
           }
         }
 
-        // Attach images from media
-        if (data.mediaIds?.length) {
-          const mediaService = require('../media/media.service');
-          let sortOrder = 0;
-          for (const mediaId of data.mediaIds) {
-            const media = await mediaService.findById(mediaId);
-            await trx('product_images').insert({
-              id: uuid(),
-              product_id: id,
-              media_id: mediaId,
-              url: media.url,
-              thumbnail_url: media.thumbnail_url,
-              sort_order: sortOrder++,
-            });
-          }
-        }
-
         createdProducts.push({ product, variantDef: varDef });
       }
 
