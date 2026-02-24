@@ -459,8 +459,18 @@ class ProductsService {
 
   async addVariant(productId, data) {
     const db = this.db();
-    const id = uuid();
 
+    // Check if this product belongs to a variant group
+    const product = await db('products').where({ id: productId, is_deleted: false }).first();
+    if (!product) throw new AppError('Product not found', 404);
+
+    if (product.variant_group_id) {
+      // ─── Expanded: create a new sibling product for this variant ───
+      return await this._addVariantExpanded(product, data);
+    }
+
+    // ─── Normal: just add variant record ───
+    const id = uuid();
     const [variant] = await db('product_variants')
       .insert({
         id,
@@ -478,6 +488,134 @@ class ProductsService {
       .returning('*');
 
     return variant;
+  }
+
+  /**
+   * Add variant to an expanded product group:
+   * 1. Create a new duplicate product for the new variant
+   * 2. Add cross-link variant to all existing siblings
+   * 3. Add all sibling links to the new product
+   */
+  async _addVariantExpanded(currentProduct, variantData) {
+    const db = this.db();
+    const groupId = currentProduct.variant_group_id;
+
+    // Find base name by stripping the variant suffix from current product
+    const existingVariants = await db('product_variants').where({ product_id: currentProduct.id });
+    const selfVariant = existingVariants.find((v) => !v.url);
+    const baseName = selfVariant
+      ? currentProduct.name.replace(` - ${selfVariant.name}`, '')
+      : currentProduct.name;
+
+    // Get all sibling products in this group
+    const siblings = await db('products')
+      .where({ variant_group_id: groupId, is_deleted: false });
+
+    return await db.transaction(async (trx) => {
+      // 1. Create new product for the new variant
+      const newProductId = uuid();
+      const newProductName = `${baseName} - ${variantData.name}`;
+      const slug = await generateUniqueSlug(newProductName, 'products');
+      const sku = variantData.sku || await this.generateSku(newProductName);
+
+      await trx('products').insert({
+        id: newProductId,
+        name: newProductName,
+        slug,
+        description: currentProduct.description,
+        sku,
+        price: variantData.price,
+        sale_price: variantData.salePrice || null,
+        cost_price: currentProduct.cost_price,
+        tax_rate: currentProduct.tax_rate,
+        stock_quantity: variantData.stockQuantity || 0,
+        low_stock_threshold: currentProduct.low_stock_threshold,
+        track_inventory: currentProduct.track_inventory,
+        weight: currentProduct.weight,
+        status: currentProduct.status,
+        meta_title: newProductName,
+        meta_description: currentProduct.meta_description,
+        variant_group_id: groupId,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      // Copy categories from current product
+      const categories = await trx('product_categories').where({ product_id: currentProduct.id });
+      if (categories.length) {
+        await trx('product_categories').insert(
+          categories.map((c) => ({ product_id: newProductId, category_id: c.category_id }))
+        );
+      }
+
+      // Copy attributes from current product
+      const attributes = await trx('product_attributes').where({ product_id: currentProduct.id });
+      if (attributes.length) {
+        await trx('product_attributes').insert(
+          attributes.map((a) => ({ id: uuid(), product_id: newProductId, key: a.key, value: a.value }))
+        );
+      }
+
+      // 2. Add new variant link to ALL existing sibling products
+      for (const sibling of siblings) {
+        await trx('product_variants').insert({
+          id: uuid(),
+          product_id: sibling.id,
+          name: variantData.name,
+          sku: variantData.sku || null,
+          price: variantData.price,
+          sale_price: variantData.salePrice || null,
+          stock_quantity: variantData.stockQuantity || 0,
+          attributes: JSON.stringify({}),
+          url: `/product/${slug}`,
+          is_active: true,
+          created_at: new Date(),
+        });
+      }
+
+      // 3. Add all existing sibling links + self to the new product
+      for (const sibling of siblings) {
+        // Find that sibling's self-variant to get the variant name
+        const siblingSelfVariant = await trx('product_variants')
+          .where({ product_id: sibling.id, url: null })
+          .first();
+        const siblingVariantName = siblingSelfVariant?.name || sibling.name;
+
+        await trx('product_variants').insert({
+          id: uuid(),
+          product_id: newProductId,
+          name: siblingVariantName,
+          price: sibling.price,
+          sale_price: sibling.sale_price,
+          stock_quantity: sibling.stock_quantity,
+          attributes: JSON.stringify({}),
+          url: `/product/${sibling.slug}`,
+          is_active: true,
+          created_at: new Date(),
+        });
+      }
+
+      // Add self-variant (no url) for the new product
+      await trx('product_variants').insert({
+        id: uuid(),
+        product_id: newProductId,
+        name: variantData.name,
+        price: variantData.price,
+        sale_price: variantData.salePrice || null,
+        stock_quantity: variantData.stockQuantity || 0,
+        attributes: JSON.stringify({}),
+        url: null,
+        is_active: true,
+        created_at: new Date(),
+      });
+
+      // Return the variant that was added to the CURRENT product (for the admin UI)
+      const addedVariant = await trx('product_variants')
+        .where({ product_id: currentProduct.id, url: `/product/${slug}` })
+        .first();
+
+      return addedVariant;
+    });
   }
 
   async updateVariant(variantId, data) {
