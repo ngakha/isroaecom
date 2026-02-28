@@ -316,6 +316,126 @@ class OrdersService {
   }
 
   /**
+   * Admin-created manual order (free-text product, no stock management)
+   */
+  async adminCreate(data) {
+    const db = this.db();
+    const id = uuid();
+
+    await db.transaction(async (trx) => {
+      const orderNumber = await this.generateOrderNumber(trx);
+      const subtotal = data.price * data.quantity;
+      const customerName = `${data.firstName} ${data.lastName}`;
+
+      await trx('orders').insert({
+        id,
+        order_number: orderNumber,
+        customer_name: customerName,
+        customer_email: '',
+        status: 'pending',
+        subtotal,
+        tax_amount: 0,
+        shipping_amount: data.shippingAmount || 0,
+        discount_amount: 0,
+        total: subtotal,
+        currency: 'GEL',
+        payment_method: data.paymentType,
+        payment_type: data.paymentType,
+        payment_status: 'pending',
+        phone2: data.phone2 || null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      await trx('order_items').insert({
+        id: uuid(),
+        order_id: id,
+        product_id: null,
+        name: data.productName,
+        price: data.price,
+        quantity: data.quantity,
+        total: subtotal,
+        cost_price: data.costPrice,
+      });
+
+      await trx('order_addresses').insert({
+        id: uuid(),
+        order_id: id,
+        type: 'shipping',
+        first_name: data.firstName,
+        last_name: data.lastName,
+        address_line1: data.address,
+        city: '',
+        country: 'GE',
+        phone: data.phone,
+      });
+
+      await trx('order_status_history').insert({
+        id: uuid(),
+        order_id: id,
+        status: 'pending',
+        note: 'Admin-created order',
+        created_at: new Date(),
+      });
+    });
+
+    return this.findById(id);
+  }
+
+  /**
+   * Export orders data for CSV
+   */
+  async getExportData(range, from, to) {
+    const db = this.db();
+    let dateFrom, dateTo;
+    const now = new Date();
+
+    if (range === 'custom') {
+      dateFrom = new Date(from);
+      dateTo = new Date(to);
+      dateTo.setHours(23, 59, 59, 999);
+    } else if (range === '1d') {
+      dateFrom = new Date(now);
+      dateFrom.setHours(0, 0, 0, 0);
+      dateTo = now;
+    } else if (range === '7d') {
+      dateFrom = new Date(now);
+      dateFrom.setDate(dateFrom.getDate() - 7);
+      dateFrom.setHours(0, 0, 0, 0);
+      dateTo = now;
+    } else {
+      dateFrom = new Date(now);
+      dateFrom.setMonth(dateFrom.getMonth() - 1);
+      dateFrom.setHours(0, 0, 0, 0);
+      dateTo = now;
+    }
+
+    const rows = await db('orders as o')
+      .join('order_items as oi', 'oi.order_id', 'o.id')
+      .leftJoin('order_addresses as a', function () {
+        this.on('a.order_id', '=', 'o.id').andOn('a.type', '=', db.raw("'shipping'"));
+      })
+      .select(
+        'o.customer_name',
+        'oi.name as product_name',
+        'oi.quantity',
+        'oi.price',
+        'oi.total as item_total',
+        'a.address_line1 as address',
+        'a.phone',
+        'o.phone2',
+        'o.shipping_amount',
+        'o.payment_type',
+        'oi.cost_price',
+        'o.created_at'
+      )
+      .whereBetween('o.created_at', [dateFrom, dateTo])
+      .orderBy('o.created_at', 'desc');
+
+    return rows;
+  }
+
+  /**
    * Dashboard statistics
    */
   async getStats() {

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Search, Eye, Archive, ArchiveRestore } from 'lucide-react';
+import { Search, Eye, Archive, ArchiveRestore, Plus, Download } from 'lucide-react';
 import { usePaginatedApi } from '../../hooks/useApi';
 import DataTable from '../../components/ui/DataTable';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -12,7 +12,23 @@ export default function OrdersPage() {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('active');
+  const [exportOpen, setExportOpen] = useState(false);
+  const [customRange, setCustomRange] = useState(false);
+  const [exportFrom, setExportFrom] = useState('');
+  const [exportTo, setExportTo] = useState('');
+  const exportRef = useRef(null);
   const { data: orders, pagination, loading, setPage, updateFilters, refetch } = usePaginatedApi('/orders');
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target)) {
+        setExportOpen(false);
+        setCustomRange(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -41,6 +57,34 @@ export default function OrdersPage() {
       refetch();
     } catch {
       toast.error(t('orders.restoreFailed'));
+    }
+  };
+
+  const handleExport = async (range) => {
+    try {
+      const params = { range };
+      if (range === 'custom') {
+        if (!exportFrom || !exportTo) {
+          toast.error(t('orders.selectDates'));
+          return;
+        }
+        params.from = exportFrom;
+        params.to = exportTo;
+      }
+      const res = await api.get('/orders/export', {
+        params,
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `orders-${range}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      setExportOpen(false);
+      setCustomRange(false);
+    } catch {
+      toast.error(t('orders.exportFailed'));
     }
   };
 
@@ -107,7 +151,52 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{t('orders.title')}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">{t('orders.title')}</h1>
+        <div className="flex items-center gap-2">
+          {/* Export dropdown */}
+          <div className="relative" ref={exportRef}>
+            <button
+              onClick={() => setExportOpen(!exportOpen)}
+              className="btn-secondary flex items-center gap-1.5"
+            >
+              <Download size={16} />
+              {t('orders.export')}
+            </button>
+            {exportOpen && (
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg border border-gray-200 shadow-lg z-20 w-56 py-1">
+                <button onClick={() => handleExport('1d')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">
+                  {t('orders.export1d')}
+                </button>
+                <button onClick={() => handleExport('7d')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">
+                  {t('orders.export7d')}
+                </button>
+                <button onClick={() => handleExport('1m')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">
+                  {t('orders.export1m')}
+                </button>
+                <div className="border-t border-gray-100 my-1" />
+                <button onClick={() => setCustomRange(true)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 font-medium">
+                  {t('orders.exportCustom')}
+                </button>
+                {customRange && (
+                  <div className="px-4 py-2 space-y-2 border-t border-gray-100">
+                    <input type="date" className="input text-sm" value={exportFrom} onChange={(e) => setExportFrom(e.target.value)} />
+                    <input type="date" className="input text-sm" value={exportTo} onChange={(e) => setExportTo(e.target.value)} />
+                    <button onClick={() => handleExport('custom')} className="btn-primary w-full text-sm">
+                      {t('orders.exportDownload')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <Link to="/orders/create" className="btn-primary flex items-center gap-1.5">
+            <Plus size={16} />
+            {t('orders.createOrder')}
+          </Link>
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className="flex items-center gap-4 border-b border-gray-200">

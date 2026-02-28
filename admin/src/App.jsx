@@ -9,6 +9,7 @@ import ProductFormPage from './pages/Products/ProductFormPage';
 import CategoriesPage from './pages/Products/CategoriesPage';
 import OrdersPage from './pages/Orders/OrdersPage';
 import OrderDetailPage from './pages/Orders/OrderDetailPage';
+import CreateOrderPage from './pages/Orders/CreateOrderPage';
 import CustomersPage from './pages/Customers/CustomersPage';
 import DiscountsPage from './pages/Discounts/DiscountsPage';
 import MediaPage from './pages/Media/MediaPage';
@@ -52,6 +53,7 @@ export default function App() {
 
                 {/* shop_manager+ only */}
                 <Route path="/orders" element={<RoleRoute roles={['super_admin', 'shop_manager']}><OrdersPage /></RoleRoute>} />
+                <Route path="/orders/create" element={<RoleRoute roles={['super_admin', 'shop_manager']}><CreateOrderPage /></RoleRoute>} />
                 <Route path="/orders/:id" element={<RoleRoute roles={['super_admin', 'shop_manager']}><OrderDetailPage /></RoleRoute>} />
                 <Route path="/customers" element={<RoleRoute roles={['super_admin', 'shop_manager']}><CustomersPage /></RoleRoute>} />
                 <Route path="/discounts" element={<RoleRoute roles={['super_admin', 'shop_manager']}><DiscountsPage /></RoleRoute>} />

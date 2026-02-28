@@ -19,6 +19,14 @@ router.get('/stats',
   controller.getStats
 );
 
+// Admin - export orders CSV
+router.get('/export',
+  authenticate,
+  authorize('shop_manager'),
+  validate(schemas.exportQuery, 'query'),
+  controller.exportOrders
+);
+
 // Customer - my orders (MUST be before /:id to avoid param conflict)
 router.get('/my-orders',
   authenticate,
@@ -36,6 +44,14 @@ router.get('/:id',
   authenticate,
   authorize('shop_manager'),
   controller.getById
+);
+
+// Admin - create manual order
+router.post('/admin-create',
+  authenticate,
+  authorize('shop_manager'),
+  validate(schemas.adminCreateOrder),
+  controller.adminCreate
 );
 
 // Create order (from checkout)

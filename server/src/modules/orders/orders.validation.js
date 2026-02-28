@@ -59,4 +59,24 @@ const listQuery = Joi.object({
   archived: Joi.string().valid('true', 'false', 'all').optional(),
 });
 
-module.exports = { createOrder, updateStatus, listQuery };
+const adminCreateOrder = Joi.object({
+  firstName: Joi.string().max(100).required(),
+  lastName: Joi.string().max(100).required(),
+  productName: Joi.string().max(500).required(),
+  quantity: Joi.number().integer().min(1).required(),
+  price: Joi.number().min(0).required(),
+  address: Joi.string().max(500).required(),
+  phone: Joi.string().max(20).required(),
+  phone2: Joi.string().max(20).allow('', null).optional(),
+  shippingAmount: Joi.number().min(0).required(),
+  paymentType: Joi.string().valid('on_delivery', 'warehouse_pickup', 'bank_transfer').required(),
+  costPrice: Joi.number().min(0).required(),
+});
+
+const exportQuery = Joi.object({
+  range: Joi.string().valid('1d', '7d', '1m', 'custom').required(),
+  from: Joi.string().isoDate().when('range', { is: 'custom', then: Joi.required() }),
+  to: Joi.string().isoDate().when('range', { is: 'custom', then: Joi.required() }),
+});
+
+module.exports = { createOrder, updateStatus, listQuery, adminCreateOrder, exportQuery };
