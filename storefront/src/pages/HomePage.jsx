@@ -224,27 +224,22 @@ export default function HomePage() {
 
       {/* Sale / Hot Deals */}
       {(loading || saleProducts.length > 0) && (
-        <section className="relative overflow-hidden bg-gradient-to-br from-red-600 via-rose-600 to-orange-500">
-          {/* Decorative background elements */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white" />
-            <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-white" />
-          </div>
+        <section className="relative overflow-hidden bg-gradient-to-b from-primary-950 to-primary-900">
+          {/* Subtle decorative glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-b from-rose-500/15 to-transparent rounded-full blur-3xl" />
 
           <div className="relative max-w-container mx-auto px-4 lg:px-6 py-14">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-10">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full">
-                  <Flame size={22} className="text-yellow-200" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">{t('home.hotDeals')}</h2>
-                  <p className="text-sm text-white/70 mt-0.5">{t('home.hotDealsSubtitle')}</p>
-                </div>
+                <Flame size={20} className="text-rose-400" />
+                <h2 className="text-2xl font-semibold text-white tracking-tight">{t('home.hotDeals')}</h2>
+                <span className="hidden sm:inline-block text-xs text-rose-300/80 bg-rose-500/15 px-2.5 py-1 rounded-full font-medium">
+                  {t('home.hotDealsSubtitle')}
+                </span>
               </div>
               <Link
                 to="/shop?onSale=true"
-                className="hidden sm:inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-white/25 transition-colors border border-white/20"
+                className="text-sm text-primary-300 hover:text-white flex items-center gap-1 transition-colors"
               >
                 {t('home.viewAllDeals')} <ArrowRight size={14} />
               </Link>
@@ -253,17 +248,11 @@ export default function HomePage() {
               {loading
                 ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
                 : saleProducts.map((product) => (
-                    <div key={product.id} className="bg-white rounded-xl p-2 shadow-lg shadow-black/10">
+                    <div key={product.id} className="bg-white rounded-xl p-3 ring-1 ring-white/10">
                       <ProductCard product={product} />
                     </div>
                   ))}
             </div>
-            <Link
-              to="/shop?onSale=true"
-              className="sm:hidden flex items-center justify-center gap-2 mt-6 bg-white/15 backdrop-blur-sm text-white px-5 py-3 rounded-lg text-sm font-semibold hover:bg-white/25 transition-colors border border-white/20"
-            >
-              {t('home.viewAllDeals')} <ArrowRight size={14} />
-            </Link>
           </div>
         </section>
       )}
