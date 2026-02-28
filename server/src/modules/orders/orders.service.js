@@ -11,8 +11,8 @@ const hooks = new LifecycleHooks('orders');
 // Order status pipeline
 const STATUS_FLOW = {
   pending: ['confirmed', 'cancelled'],
-  confirmed: ['processing', 'cancelled'],
-  processing: ['shipped', 'cancelled'],
+  confirmed: ['processing', 'delivered', 'cancelled'],
+  processing: ['shipped', 'delivered', 'cancelled'],
   shipped: ['delivered'],
   delivered: ['completed', 'refund_requested'],
   completed: [],

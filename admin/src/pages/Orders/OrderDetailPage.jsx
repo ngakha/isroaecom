@@ -9,8 +9,8 @@ import toast from 'react-hot-toast';
 
 const STATUS_TRANSITIONS = {
   pending: ['confirmed', 'cancelled'],
-  confirmed: ['processing', 'cancelled'],
-  processing: ['shipped', 'cancelled'],
+  confirmed: ['processing', 'delivered', 'cancelled'],
+  processing: ['shipped', 'delivered', 'cancelled'],
   shipped: ['delivered'],
   delivered: ['completed', 'refund_requested'],
   refund_requested: ['refunded', 'delivered'],
