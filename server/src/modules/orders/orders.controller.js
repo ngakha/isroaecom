@@ -112,8 +112,8 @@ class OrdersController {
         let profit = '';
         if (r.cost_price != null) {
           profit = r.payment_type === 'on_delivery'
-            ? ((total + shipping) * 0.98 - cost).toFixed(2)
-            : (total + shipping - cost).toFixed(2);
+            ? (total * 0.98 - shipping - cost).toFixed(2)
+            : (total - shipping - cost).toFixed(2);
         }
         csvRows.push([
           escCsv(r.customer_name),

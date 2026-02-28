@@ -39,9 +39,9 @@ export default function CreateOrderPage() {
 
   let profit = 0;
   if (form.paymentType === 'on_delivery') {
-    profit = (total + shipping) * 0.98 - cost;
+    profit = total * 0.98 - shipping - cost;
   } else {
-    profit = total + shipping - cost;
+    profit = total - shipping - cost;
   }
 
   const handleSubmit = async (e) => {
